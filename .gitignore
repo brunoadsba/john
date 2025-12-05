@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/.venv/
+venv/
+ENV/
+env/
+
+# Modelos de IA (muito grandes)
+models/
+*.bin
+*.onnx
+*.pt
+*.pth
+
+# Arquivos temporários
+temp/
+*.wav
+*.mp3
+*.tmp
+
+# Ambiente
+.env
+.env.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testes
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker
+*.pid
+
