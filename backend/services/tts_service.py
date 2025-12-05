@@ -6,12 +6,35 @@ import time
 from typing import Optional
 from loguru import logger
 
+# Tenta importar piper-tts (pode não estar totalmente configurado ainda)
+PiperVoice = None
+PiperVoiceAvailable = False
+
 try:
-    from piper import PiperVoice
-    from piper.download import ensure_voice_exists, find_voice, get_voices
-except ImportError:
-    logger.warning("piper-tts não disponível")
-    PiperVoice = None
+    # Tenta diferentes formas de importar piper-tts
+    try:
+        from piper_tts import PiperVoice
+        PiperVoiceAvailable = True
+        logger.info("piper-tts importado com sucesso (piper_tts)")
+    except ImportError:
+        try:
+            from piper import PiperVoice
+            PiperVoiceAvailable = True
+            logger.info("piper-tts importado com sucesso (piper)")
+        except ImportError:
+            try:
+                import piper_tts
+                PiperVoice = getattr(piper_tts, 'PiperVoice', None)
+                if PiperVoice:
+                    PiperVoiceAvailable = True
+                    logger.info("piper-tts importado com sucesso (getattr)")
+            except ImportError:
+                pass
+    
+    if not PiperVoiceAvailable:
+        logger.warning("piper-tts instalado mas não totalmente configurado (usando mock)")
+except Exception as e:
+    logger.warning(f"piper-tts não disponível: {e}")
 
 
 class PiperTTSService:
@@ -38,7 +61,7 @@ class PiperTTSService:
     def _load_voice(self):
         """Carrega a voz Piper (lazy loading)"""
         if self.voice is None:
-            if PiperVoice is None:
+            if not PiperVoiceAvailable or PiperVoice is None:
                 raise RuntimeError("piper-tts não está instalado")
             
             logger.info(f"Carregando voz Piper: {self.voice_name}...")

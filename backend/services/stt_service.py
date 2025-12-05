@@ -137,9 +137,14 @@ class WhisperSTTService:
     def is_ready(self) -> bool:
         """Verifica se o serviço está pronto"""
         try:
+            if WhisperModel is None:
+                logger.warning("faster-whisper não está instalado")
+                return False
             self._load_model()
             return self.model is not None
         except Exception as e:
             logger.error(f"Serviço STT não está pronto: {e}")
+            import traceback
+            logger.debug(traceback.format_exc())
             return False
 
