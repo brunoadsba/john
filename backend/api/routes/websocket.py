@@ -64,7 +64,7 @@ async def websocket_listen(websocket: WebSocket):
             # Processa diferentes tipos de mensagem
             if "text" in data:
                 # Mensagem de controle (JSON)
-                await handle_control_message(websocket, data["text"], session_id)
+                session_id = await handle_control_message(websocket, data["text"], session_id)
                 
             elif "bytes" in data:
                 # Dados de áudio

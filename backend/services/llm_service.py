@@ -80,7 +80,9 @@ class OllamaLLMService(BaseLLMService):
         
         # Configura cliente Ollama
         if ollama:
-            ollama.Client(host=host)
+            self.client = ollama.Client(host=host)
+        else:
+            self.client = None
     
     def generate_response(
         self,
@@ -108,15 +110,25 @@ class OllamaLLMService(BaseLLMService):
             
             logger.info(f"[Ollama] Gerando resposta para: '{prompt[:50]}...'")
             
-            # Chama Ollama
-            response = ollama.chat(
-                model=self.model,
-                messages=mensagens,
-                options={
-                    "temperature": self.temperature,
-                    "num_predict": self.max_tokens
-                }
-            )
+            # Chama Ollama usando cliente configurado
+            if self.client:
+                response = self.client.chat(
+                    model=self.model,
+                    messages=mensagens,
+                    options={
+                        "temperature": self.temperature,
+                        "num_predict": self.max_tokens
+                    }
+                )
+            else:
+                response = ollama.chat(
+                    model=self.model,
+                    messages=mensagens,
+                    options={
+                        "temperature": self.temperature,
+                        "num_predict": self.max_tokens
+                    }
+                )
             
             resposta = response['message']['content']
             tokens_usados = response.get('eval_count', 0)
@@ -166,7 +178,10 @@ class OllamaLLMService(BaseLLMService):
                 return False
             
             # Tenta listar modelos para verificar conexão
-            models = ollama.list()
+            if self.client:
+                models = self.client.list()
+            else:
+                models = ollama.list()
             
             # Verifica se o modelo está disponível
             model_names = [m['name'] for m in models.get('models', [])]
