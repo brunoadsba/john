@@ -46,8 +46,18 @@ async def websocket_listen(websocket: WebSocket):
     5. Loop continua até desconexão
     """
     await websocket.accept()
-    session_id = None
     
+    # Verifica se serviços estão inicializados
+    if not context_manager:
+        await websocket.send_json({
+            "type": "error",
+            "message": "Servidor ainda não está pronto. Aguarde alguns segundos."
+        })
+        await websocket.close()
+        logger.error("WebSocket rejeitado: serviços não inicializados")
+        return
+    
+    session_id = None
     logger.info("Nova conexão WebSocket estabelecida")
     
     try:
@@ -245,6 +255,17 @@ async def websocket_stream(websocket: WebSocket):
     Recebe chunks de áudio em tempo real e processa incrementalmente
     """
     await websocket.accept()
+    
+    # Verifica se serviços estão inicializados
+    if not context_manager:
+        await websocket.send_json({
+            "type": "error",
+            "message": "Servidor ainda não está pronto. Aguarde alguns segundos."
+        })
+        await websocket.close()
+        logger.error("WebSocket streaming rejeitado: serviços não inicializados")
+        return
+    
     logger.info("Nova conexão WebSocket de streaming estabelecida")
     
     audio_buffer = bytearray()
