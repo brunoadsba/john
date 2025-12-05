@@ -1,5 +1,6 @@
 #!/bin/bash
-# Wrapper script: Atualiza IP e executa o app Flutter
+# Wrapper script inteligente: Atualiza IP, gerencia servidor e executa app Flutter
+# O script update_mobile_ip.sh já gerencia tudo automaticamente
 
 set -e
 
@@ -9,7 +10,7 @@ UPDATE_SCRIPT="$PROJECT_ROOT/scripts/update_mobile_ip.sh"
 echo "🚀 Iniciando Jonh Assistant Mobile App"
 echo ""
 
-# Atualiza IP automaticamente
+# Atualiza IP e gerencia servidor automaticamente
 if [ -f "$UPDATE_SCRIPT" ]; then
     "$UPDATE_SCRIPT"
     echo ""
