@@ -110,17 +110,26 @@ O servidor estará disponível em: `http://localhost:8000`
 
 ### 6. Executar Mobile App (Opcional)
 
+**Método Automático (Recomendado):**
 ```bash
-# Instale dependências
+# Script atualiza IP automaticamente e executa o app
+./scripts/run_mobile_app.sh
+```
+
+**Método Manual:**
+```bash
+# Atualizar IP automaticamente
+./scripts/update_mobile_ip.sh
+
+# Instalar dependências
 cd mobile_app
 flutter pub get
-
-# Configure IP do servidor em lib/services/api_service.dart
-# Substitua 'localhost' pelo IP da sua máquina na rede
 
 # Execute o app
 flutter run
 ```
+
+**O script detecta e atualiza o IP automaticamente quando você muda de rede WiFi!** 🎉
 
 **Documentação completa:**
 - [Backend](docs/INSTALACAO.md)

@@ -6,8 +6,14 @@ import '../models/message.dart';
 
 /// Serviço de comunicação com a API do Jonh Assistant
 class ApiService extends ChangeNotifier {
-  static const String baseUrl = 'http://localhost:8000';
-  static const String wsUrl = 'ws://localhost:8000/ws/listen';
+  // TODO: Configure o IP da sua máquina na rede local
+  // Descubra com: hostname -I (Linux) ou ipconfig (Windows)
+  static const String baseUrl = 'http://172.20.240.80:8000';
+  static const String wsUrl = 'ws://172.20.240.80:8000/ws/listen';
+  
+  // Para desenvolvimento local, use:
+  // static const String baseUrl = 'http://localhost:8000';
+  // static const String wsUrl = 'ws://localhost:8000/ws/listen';
   
   WebSocketChannel? _channel;
   String? _sessionId;
