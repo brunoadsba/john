@@ -166,9 +166,11 @@ flutter run
 ### Configuração Atual (.env)
 ```
 LLM_PROVIDER=groq
-GROQ_API_KEY=gsk_<redacted_compromised_key>
+GROQ_API_KEY=gsk_sua_chave_aqui
 GROQ_MODEL=llama-3.1-8b-instant
 ```
+
+**⚠️ IMPORTANTE:** Substitua `gsk_sua_chave_aqui` pela sua chave real do Groq.
 
 ### Servidor
 - **Porta:** 8000

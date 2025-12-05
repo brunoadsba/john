@@ -68,7 +68,7 @@ Se houver problemas, siga: https://docs.flutter.dev/get-started/install
 ### Passo 2: Clonar Projeto
 
 ```bash
-cd /home/brunoadsba/john/mobile_app
+cd mobile_app
 ```
 
 ### Passo 3: Instalar Dependências
@@ -284,7 +284,7 @@ final bytes = await audioService.stopRecording();
 
 **1. Inicie o servidor backend:**
 ```bash
-cd /home/brunoadsba/john
+cd <project-root>
 python3 backend/api/main.py
 ```
 

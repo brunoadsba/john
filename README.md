@@ -102,7 +102,7 @@ nano .env
 
 ```bash
 # No diretório raiz do projeto
-cd /home/brunoadsba/john
+cd ~/john
 python3 backend/api/main.py
 ```
 

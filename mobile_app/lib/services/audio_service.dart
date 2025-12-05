@@ -3,6 +3,7 @@ import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:typed_data';
+import 'dart:io';
 
 /// Serviço de gravação e reprodução de áudio
 class AudioService extends ChangeNotifier {
@@ -70,9 +71,26 @@ class AudioService extends ChangeNotifier {
       notifyListeners();
       
       if (path != null) {
-        // TODO: Ler arquivo e retornar bytes
         debugPrint('Áudio gravado em: $path');
-        return null; // Por enquanto retorna null
+        
+        // Lê arquivo e retorna bytes
+        final file = File(path);
+        if (await file.exists()) {
+          final bytes = await file.readAsBytes();
+          debugPrint('Áudio lido: ${bytes.length} bytes');
+          
+          // Remove arquivo temporário após ler
+          try {
+            await file.delete();
+          } catch (e) {
+            debugPrint('Aviso: Não foi possível deletar arquivo temporário: $e');
+          }
+          
+          return Uint8List.fromList(bytes);
+        } else {
+          debugPrint('Erro: Arquivo de áudio não encontrado: $path');
+          return null;
+        }
       }
       return null;
     } catch (e) {

@@ -12,7 +12,7 @@ Comece a usar o assistente Jonh em 5 minutos!
 
 ### Passo 2: Configurar
 ```bash
-cd /home/brunoadsba/john
+cd ~/john
 
 # Edite o .env
 nano .env
@@ -54,7 +54,7 @@ ollama pull llama3:8b-instruct-q4_0
 
 ### Passo 3: Rodar
 ```bash
-cd /home/brunoadsba/john
+cd ~/john
 ./scripts/start_server.sh
 ```
 
