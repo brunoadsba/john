@@ -18,9 +18,11 @@ Assistente de voz 100% local e profissional, similar à Alexa, rodando inteirame
 - **Text-to-Speech**: Piper TTS (voz pt_BR natural)
 - **API**: FastAPI com endpoints REST e WebSocket
 
-### Frontend (Futuro)
-- **Mobile**: Flutter com detecção de wake word (Porcupine)
-- **Web**: Interface de controle e monitoramento
+### Mobile App (Flutter)
+- **Interface de Chat**: Conversação fluida com o assistente
+- **Gravação de Áudio**: Captura otimizada (16kHz mono)
+- **WebSocket**: Comunicação em tempo real
+- **Wake Word**: Detecção por voz "Jonh" (em desenvolvimento)
 
 ## Requisitos
 
@@ -99,12 +101,32 @@ nano .env
 ### 5. Iniciar o Servidor
 
 ```bash
-# No diretório backend/api
-cd backend/api
-python main.py
+# No diretório raiz do projeto
+cd /home/brunoadsba/john
+python3 backend/api/main.py
 ```
 
 O servidor estará disponível em: `http://localhost:8000`
+
+### 6. Executar Mobile App (Opcional)
+
+```bash
+# Instale dependências
+cd mobile_app
+flutter pub get
+
+# Configure IP do servidor em lib/services/api_service.dart
+# Substitua 'localhost' pelo IP da sua máquina na rede
+
+# Execute o app
+flutter run
+```
+
+**Documentação completa:**
+- [Backend](docs/INSTALACAO.md)
+- [Mobile App](docs/MOBILE_APP.md)
+- [Wake Word](docs/WAKE_WORD.md)
+- [Arquitetura](docs/ARQUITETURA.md)
 
 ## Uso
 
@@ -188,7 +210,15 @@ john/
 │   │   ├── test_integration.py  # Testes de integração
 │   │   └── manual_test.py       # Script de teste manual
 │   └── requirements.txt         # Dependências Python
-├── mobile_app/                  # App Flutter (futuro)
+├── mobile_app/                  # App Flutter
+│   ├── lib/
+│   │   ├── main.dart            # Entry point
+│   │   ├── models/              # Modelos de dados
+│   │   ├── screens/             # Telas
+│   │   ├── services/            # Lógica de negócio
+│   │   └── widgets/             # Componentes reutilizáveis
+│   ├── android/                 # Configuração Android
+│   └── pubspec.yaml             # Dependências Flutter
 ├── docs/                        # Documentação adicional
 └── README.md                    # Este arquivo
 ```
@@ -263,12 +293,16 @@ systemctl --user start ollama
 - [x] WebSocket para tempo real
 - [x] Gerenciamento de contexto
 - [x] Testes básicos
-- [ ] App mobile Flutter
-- [ ] Wake word detection
+- [x] App mobile Flutter
+- [x] Dual LLM (Ollama + Groq)
+- [x] Documentação completa
+- [ ] Wake word detection (Porcupine)
+- [ ] Persistência de histórico (SQLite)
 - [ ] Interface web de controle
 - [ ] Suporte a múltiplos idiomas
-- [ ] Integração com smart home
+- [ ] Integração smart home
 - [ ] Docker compose completo
+- [ ] Suporte iOS
 
 ## Contribuindo
 

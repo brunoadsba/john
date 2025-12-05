@@ -1,144 +1,209 @@
 # Jonh Assistant - Mobile App
 
-App Flutter para o assistente de voz Jonh.
+Aplicativo mobile Flutter para interagir com o assistente de voz Jonh.
 
-## Funcionalidades
+## 🎯 Funcionalidades
 
-- ✅ Interface de conversação
-- ✅ Gravação de áudio
-- ✅ Comunicação WebSocket com backend
-- ✅ Gerenciamento de sessões
-- ⏳ Wake word detection (futuro)
-- ⏳ Reprodução de áudio TTS (futuro)
+- ✅ **Interface de Chat**: Conversação fluida com o assistente
+- ✅ **Gravação de Áudio**: Captura otimizada (16kHz mono)
+- ✅ **WebSocket**: Comunicação em tempo real
+- ✅ **Reprodução de Áudio**: Respostas em voz
+- 🔄 **Wake Word**: Detecção por voz "Jonh" (em desenvolvimento)
 
-## Requisitos
+## 📋 Requisitos
 
-- Flutter 3.0+
-- Android SDK 21+ (Android 5.0+)
-- Servidor Jonh Assistant rodando
+- Flutter 3.0.0+
+- Dart 3.0.0+
+- Android 5.0+ (API 21+)
+- Servidor backend rodando
 
-## Instalação
+## 🚀 Início Rápido
 
-### 1. Instalar dependências
+### 1. Instalar Dependências
 
 ```bash
 cd mobile_app
 flutter pub get
 ```
 
-### 2. Configurar servidor
+### 2. Configurar IP do Servidor
 
-Edite `lib/services/api_service.dart` e ajuste as URLs:
+Edite `lib/services/api_service.dart`:
 
 ```dart
 static const String baseUrl = 'http://SEU_IP:8000';
 static const String wsUrl = 'ws://SEU_IP:8000/ws/listen';
 ```
 
-**Nota**: Use o IP da sua máquina na rede local, não `localhost`.
+**Descobrir seu IP:**
+```bash
+# Linux/WSL
+hostname -I
+
+# Windows
+ipconfig
+```
 
 ### 3. Executar
 
 ```bash
-# Conecte um dispositivo Android ou inicie um emulador
-flutter devices
-
-# Execute o app
 flutter run
 ```
 
-## Estrutura do Projeto
+## 📱 Como Usar
+
+### Conversação por Toque
+
+1. Toque e segure o botão do microfone
+2. Fale sua pergunta
+3. Solte o botão
+4. Aguarde a resposta
+
+### Wake Word (Futuro)
+
+1. Diga "Jonh"
+2. Fale sua pergunta
+3. Aguarde a resposta
+
+## 🏗️ Arquitetura
 
 ```
 lib/
-├── main.dart                 # Entrada do app
+├── main.dart                 # Entry point
 ├── models/
 │   └── message.dart          # Modelo de mensagem
 ├── screens/
 │   └── home_screen.dart      # Tela principal
 ├── services/
-│   ├── api_service.dart      # Comunicação com API
-│   └── audio_service.dart    # Gravação/reprodução
+│   ├── api_service.dart      # Comunicação backend
+│   ├── audio_service.dart    # Áudio
+│   └── wake_word_service.dart # Wake word (futuro)
 └── widgets/
     ├── message_list.dart     # Lista de mensagens
-    └── voice_button.dart     # Botão de gravação
+    └── voice_button.dart     # Botão de voz
 ```
 
-## Uso
+## 🔧 Configuração Avançada
 
-1. **Inicie o servidor backend**
-2. **Abra o app**
-3. **Toque no ícone de nuvem** para conectar ao servidor
-4. **Toque e segure o botão do microfone** para gravar
-5. **Solte para enviar** o áudio
+### Permissões
 
-## Permissões
+Já configuradas em `AndroidManifest.xml`:
+- `INTERNET`: Comunicação com backend
+- `RECORD_AUDIO`: Gravação de voz
+- `MODIFY_AUDIO_SETTINGS`: Configurações de áudio
+- `WAKE_LOCK`: Manter app ativo
 
-O app solicita:
-- **Microfone**: Para gravação de voz
-- **Internet**: Para comunicação com servidor
+### Build Release
 
-## Desenvolvimento
-
-### Adicionar nova tela
-
-```dart
-// lib/screens/nova_tela.dart
-import 'package:flutter/material.dart';
-
-class NovaTela extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Nova Tela')),
-      body: Center(child: Text('Conteúdo')),
-    );
-  }
-}
+```bash
+flutter build apk --release
 ```
 
-### Adicionar novo serviço
+**APK gerado em:** `build/app/outputs/flutter-apk/app-release.apk`
 
-```dart
-// lib/services/novo_service.dart
-import 'package:flutter/foundation.dart';
+### Instalar APK
 
-class NovoService extends ChangeNotifier {
-  // Implementação
-}
+```bash
+adb install build/app/outputs/flutter-apk/app-release.apk
 ```
 
-## Troubleshooting
+## 🐛 Troubleshooting
 
-### Erro de conexão
+### Não conecta ao servidor
 
-- Verifique se o servidor está rodando
-- Use IP da rede local, não localhost
-- Verifique firewall
+1. Verifique se backend está rodando: `curl http://localhost:8000/health`
+2. Confirme IP correto no código
+3. Teste conectividade: `ping SEU_IP`
+4. Verifique firewall: `sudo ufw allow 8000/tcp`
 
 ### Permissão de microfone negada
 
-- Vá em Configurações > Apps > Jonh Assistant > Permissões
-- Ative "Microfone"
+1. Configurações > Apps > Jonh Assistant > Permissões > Microfone
+2. Desinstale e reinstale o app
 
-### Build falha
+### WebSocket fecha imediatamente
+
+1. Verifique logs do servidor
+2. Confirme URL (deve começar com `ws://`, não `http://`)
+3. Teste WebSocket com ferramenta online
+
+## 📚 Documentação Completa
+
+- **[Guia Completo](../docs/MOBILE_APP.md)**: Instalação, uso, troubleshooting
+- **[Arquitetura](../docs/ARQUITETURA.md)**: Detalhes técnicos
+- **[Wake Word](../docs/WAKE_WORD.md)**: Implementação futura
+
+## 🧪 Testes
 
 ```bash
-flutter clean
-flutter pub get
-flutter run
+# Todos os testes
+flutter test
+
+# Teste específico
+flutter test test/services/api_service_test.dart
 ```
 
-## Próximos Passos
+## 📊 Performance
 
-- [ ] Implementar wake word detection (Porcupine)
-- [ ] Reprodução de áudio TTS
-- [ ] Configurações do app
-- [ ] Temas claro/escuro
-- [ ] Histórico de conversas
-- [ ] Notificações
+**Pipeline completo (médio):**
+- Gravação: Instantâneo
+- Envio: ~100ms
+- STT: ~800ms
+- LLM: ~300ms (Groq) / ~1800ms (Ollama)
+- TTS: ~400ms
+- Reprodução: Instantâneo
+- **Total: ~1.6s (Groq) / ~3.1s (Ollama)**
 
-## Licença
+## 🛠️ Desenvolvimento
 
-MIT
+### Hot Reload
 
+```bash
+flutter run
+# Pressione 'r' para hot reload
+# Pressione 'R' para hot restart
+```
+
+### Logs
+
+```bash
+flutter logs
+```
+
+### Análise de Código
+
+```bash
+flutter analyze
+```
+
+### Formatação
+
+```bash
+flutter format lib/
+```
+
+## 🔮 Roadmap
+
+- [ ] Wake word detection (Porcupine)
+- [ ] Detecção de silêncio automática
+- [ ] Histórico persistente (SQLite)
+- [ ] Configurações de usuário
+- [ ] Suporte iOS
+- [ ] Temas customizáveis
+- [ ] Modo offline parcial
+
+## 🤝 Contribuindo
+
+Veja [CONTRIBUTING.md](../CONTRIBUTING.md) para detalhes.
+
+## 📄 Licença
+
+MIT License - veja [LICENSE](../LICENSE) para detalhes.
+
+## 👤 Autor
+
+Projeto Jonh Assistant
+
+---
+
+**Desenvolvido com ❤️ usando Flutter**
