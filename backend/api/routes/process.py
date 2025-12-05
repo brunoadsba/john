@@ -60,8 +60,11 @@ async def process_audio(
         logger.info("Etapa 1: Transcrição (STT)")
         texto_transcrito, confianca, duracao = stt_service.transcribe_audio(audio_data)
         
-        if not texto_transcrito:
-            raise HTTPException(status_code=400, detail="Não foi possível transcrever o áudio")
+        if not texto_transcrito or not texto_transcrito.strip():
+            raise HTTPException(
+                status_code=400, 
+                detail="Não foi possível transcrever o áudio. Verifique se o arquivo contém fala real e está em formato suportado (WAV, 16kHz mono recomendado)."
+            )
         
         logger.info(f"Transcrito: '{texto_transcrito}'")
         
