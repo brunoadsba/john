@@ -62,7 +62,24 @@ class _VoiceButtonState extends State<VoiceButton>
         }
       }
     } else {
-      // Inicia gravação
+      // Solicita permissão se não tiver
+      if (!audioService.hasPermission) {
+        final granted = await audioService.requestPermissions();
+        if (!granted) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Permissão de microfone é necessária para gravar áudio'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+          }
+          return;
+        }
+      }
+      
+      // Conecta à API se não estiver conectado
       if (!apiService.isConnected) {
         await apiService.connect();
         apiService.startSession();
@@ -91,7 +108,7 @@ class _VoiceButtonState extends State<VoiceButton>
         final canRecord = audioService.hasPermission;
         
         return GestureDetector(
-          onTap: canRecord ? _handlePress : null,
+          onTap: _handlePress,
           onLongPress: canRecord ? _handlePress : null,
           onLongPressEnd: canRecord && isRecording 
             ? (_) => _handlePress() 

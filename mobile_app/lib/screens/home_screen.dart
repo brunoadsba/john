@@ -24,8 +24,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final apiService = context.read<ApiService>();
     final audioService = context.read<AudioService>();
     
-    // Verifica permissões
+    // Verifica permissões (mas não solicita automaticamente)
     await audioService.checkPermissions();
+    
+    // Conecta à API automaticamente
+    if (!apiService.isConnected) {
+      try {
+        await apiService.connect();
+        apiService.startSession();
+      } catch (e) {
+        debugPrint('Erro ao conectar API: $e');
+      }
+    }
     
     // Testa conexão com API
     final connected = await apiService.testConnection();
