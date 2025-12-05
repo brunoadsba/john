@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:typed_data';
 import 'dart:io';
 
@@ -45,12 +46,16 @@ class AudioService extends ChangeNotifier {
     
     try {
       if (await _recorder.hasPermission()) {
+        // Gera caminho temporário para o arquivo de áudio
+        final path = '${await _getTempPath()}/audio_${DateTime.now().millisecondsSinceEpoch}.wav';
+        
         await _recorder.start(
           const RecordConfig(
             encoder: AudioEncoder.wav,
             sampleRate: 16000,
             numChannels: 1,
           ),
+          path: path,
         );
         _isRecording = true;
         notifyListeners();
@@ -58,6 +63,22 @@ class AudioService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Erro ao iniciar gravação: $e');
       rethrow;
+    }
+  }
+  
+  /// Obtém caminho temporário
+  Future<String> _getTempPath() async {
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        final directory = await getTemporaryDirectory();
+        return directory.path;
+      } else {
+        // Para web/desktop, usa /tmp
+        return '/tmp';
+      }
+    } catch (e) {
+      // Fallback para web
+      return '/tmp';
     }
   }
   
@@ -73,23 +94,42 @@ class AudioService extends ChangeNotifier {
       if (path != null) {
         debugPrint('Áudio gravado em: $path');
         
-        // Lê arquivo e retorna bytes
-        final file = File(path);
-        if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          debugPrint('Áudio lido: ${bytes.length} bytes');
-          
-          // Remove arquivo temporário após ler
+        // No web, path é um blob URL, não um arquivo
+        if (kIsWeb) {
+          // Para web, precisa fazer fetch do blob
           try {
-            await file.delete();
+            final response = await http.get(Uri.parse(path));
+            if (response.statusCode == 200) {
+              final bytes = response.bodyBytes;
+              debugPrint('Áudio lido do blob: ${bytes.length} bytes');
+              return Uint8List.fromList(bytes);
+            } else {
+              debugPrint('Erro ao ler blob: status ${response.statusCode}');
+              return null;
+            }
           } catch (e) {
-            debugPrint('Aviso: Não foi possível deletar arquivo temporário: $e');
+            debugPrint('Erro ao fazer fetch do blob: $e');
+            return null;
           }
-          
-          return Uint8List.fromList(bytes);
         } else {
-          debugPrint('Erro: Arquivo de áudio não encontrado: $path');
-          return null;
+          // Para mobile/desktop, lê arquivo normalmente
+          final file = File(path);
+          if (await file.exists()) {
+            final bytes = await file.readAsBytes();
+            debugPrint('Áudio lido: ${bytes.length} bytes');
+            
+            // Remove arquivo temporário após ler
+            try {
+              await file.delete();
+            } catch (e) {
+              debugPrint('Aviso: Não foi possível deletar arquivo temporário: $e');
+            }
+            
+            return Uint8List.fromList(bytes);
+          } else {
+            debugPrint('Erro: Arquivo de áudio não encontrado: $path');
+            return null;
+          }
         }
       }
       return null;
