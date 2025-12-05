@@ -110,25 +110,18 @@ class OllamaLLMService(BaseLLMService):
             
             logger.info(f"[Ollama] Gerando resposta para: '{prompt[:50]}...'")
             
-            # Chama Ollama usando cliente configurado
-            if self.client:
-                response = self.client.chat(
-                    model=self.model,
-                    messages=mensagens,
-                    options={
-                        "temperature": self.temperature,
-                        "num_predict": self.max_tokens
-                    }
-                )
-            else:
-                response = ollama.chat(
-                    model=self.model,
-                    messages=mensagens,
-                    options={
-                        "temperature": self.temperature,
-                        "num_predict": self.max_tokens
-                    }
-                )
+            # Chama Ollama usando cliente configurado com host customizado
+            if not self.client:
+                raise RuntimeError("Cliente Ollama não está configurado")
+            
+            response = self.client.chat(
+                model=self.model,
+                messages=mensagens,
+                options={
+                    "temperature": self.temperature,
+                    "num_predict": self.max_tokens
+                }
+            )
             
             resposta = response['message']['content']
             tokens_usados = response.get('eval_count', 0)
@@ -178,10 +171,10 @@ class OllamaLLMService(BaseLLMService):
                 return False
             
             # Tenta listar modelos para verificar conexão
-            if self.client:
-                models = self.client.list()
-            else:
-                models = ollama.list()
+            if not self.client:
+                return False
+            
+            models = self.client.list()
             
             # Verifica se o modelo está disponível
             model_names = [m['name'] for m in models.get('models', [])]
