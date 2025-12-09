@@ -22,8 +22,8 @@ flutter pub get
 
 **Opção 1: Script Automático (Recomendado)**
 ```bash
-# Atualiza IP automaticamente antes de rodar
-./scripts/update_mobile_ip.sh
+# Verifica configuração antes de rodar (opcional)
+./scripts/check_mobile_config.sh
 cd mobile_app && flutter run
 
 # OU use o wrapper que faz tudo:
@@ -74,8 +74,8 @@ flutter devices
 
 **Método 2: Manual**
 ```bash
-# Atualizar IP primeiro
-./scripts/update_mobile_ip.sh
+# Verificar configuração primeiro (opcional)
+./scripts/check_mobile_config.sh
 
 # Depois executar
 cd mobile_app
@@ -123,6 +123,43 @@ flutter run
 
 ---
 
-**IP Configurado:** `172.20.240.80:8000`  
-**Última atualização:** 05/12/2024
+## 📦 Build de APK
+
+### Gerar APK para Android
+
+```bash
+cd mobile_app
+flutter build apk --release
+```
+
+**APK gerado em:** `build/app/outputs/flutter-apk/app-release.apk`
+
+### Instalar no Dispositivo
+
+```bash
+# Via USB (ADB)
+adb install build/app/outputs/flutter-apk/app-release.apk
+
+# Ou transfira manualmente e instale
+```
+
+## 🌐 Teste no Navegador
+
+O app também funciona no navegador para testes rápidos:
+
+```bash
+flutter run -d chrome
+```
+
+**Funcionalidades testadas no web:**
+- ✅ Gravação de áudio (blob URLs)
+- ✅ Permissão de microfone automática
+- ✅ WebSocket em tempo real
+- ✅ Reprodução de áudio
+- ✅ Interface completa
+
+---
+
+**Última atualização:** 05/12/2024  
+**Status:** ✅ App 100% funcional (web e mobile)
 

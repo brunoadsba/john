@@ -26,28 +26,43 @@ cd mobile_app
 flutter pub get
 ```
 
-### 2. Configurar IP do Servidor
+### 2. Configurar IP do Servidor (AUTOMÁTICO!)
 
-Edite `lib/services/api_service.dart`:
-
-```dart
-static const String baseUrl = 'http://SEU_IP:8000';
-static const String wsUrl = 'ws://SEU_IP:8000/ws/listen';
-```
-
-**Descobrir seu IP:**
+**Opção 1: Script Automático (Recomendado)**
 ```bash
-# Linux/WSL
-hostname -I
-
-# Windows
-ipconfig
+# Script detecta IP, atualiza configuração e gerencia servidor automaticamente
+./scripts/run_mobile_app.sh
 ```
+
+**Opção 2: Manual**
+```bash
+# Verificar configuração (opcional - IP já está configurado)
+./scripts/check_mobile_config.sh
+
+# Depois executar
+cd mobile_app
+flutter run
+```
+
+**O script detecta e atualiza o IP automaticamente quando você muda de rede WiFi!** 🎉
 
 ### 3. Executar
 
+**Método Automático:**
 ```bash
+# Atualiza IP e executa tudo automaticamente
+./scripts/run_mobile_app.sh
+```
+
+**Método Manual:**
+```bash
+cd mobile_app
 flutter run
+```
+
+**Para testar no navegador:**
+```bash
+flutter run -d chrome
 ```
 
 ## 📱 Como Usar
@@ -96,15 +111,49 @@ Já configuradas em `AndroidManifest.xml`:
 ### Build Release
 
 ```bash
+cd mobile_app
 flutter build apk --release
 ```
 
 **APK gerado em:** `build/app/outputs/flutter-apk/app-release.apk`
 
+**Tamanho aproximado:** ~15-20 MB
+
 ### Instalar APK
 
+**Método 1: Via ADB (USB)**
 ```bash
+# Conecte dispositivo via USB
+adb devices
+
+# Instale APK
 adb install build/app/outputs/flutter-apk/app-release.apk
+```
+
+**Método 2: Transferência Manual**
+1. Copie `app-release.apk` para o smartphone
+2. Ative "Fontes desconhecidas" nas configurações
+3. Abra o arquivo APK e instale
+
+### Build para Web
+
+```bash
+flutter build web --release
+```
+
+**Arquivos gerados em:** `build/web/`
+
+### Testar no Navegador
+
+```bash
+# Executar em modo desenvolvimento
+flutter run -d chrome
+
+# Ou build e servir
+flutter build web
+cd build/web
+python3 -m http.server 8080
+# Acesse: http://localhost:8080
 ```
 
 ## 🐛 Troubleshooting
