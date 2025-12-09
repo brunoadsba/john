@@ -4,7 +4,7 @@
 
 Uma API key do Groq foi exposta em commits anteriores do repositório.
 
-**Key exposta:** `gsk_<redacted_compromised_key>`
+**Key exposta (redact):** `gsk_<redacted_compromised_key>`
 
 ## 📋 Passos para Resolver
 
@@ -20,7 +20,7 @@ Uma API key do Groq foi exposta em commits anteriores do repositório.
 Se o repositório foi compartilhado publicamente:
 
 ```bash
-# Verificar se key está no histórico
+# Verificar se key está no histórico (use o valor comprometido já rotacionado)
 git log --all --full-history -p | grep "gsk_<redacted_compromised_key>"
 
 # Se encontrado, considere:
