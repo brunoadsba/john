@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.6
   
   # Audio
-  record: ^5.0.4
+  record: ^6.0.0
   just_audio: ^0.9.36
   permission_handler: ^11.0.1
   
@@ -26,11 +26,17 @@ dependencies:
   provider: ^6.1.1
   
   # Wake Word (Porcupine)
-  # picovoice_flutter: ^3.0.0  # Descomentar quando configurar
+  porcupine_flutter: ^3.0.0
   
   # Utils
   path_provider: ^2.1.1
   shared_preferences: ^2.2.2
+  device_info_plus: ^9.1.0
+  package_info_plus: ^8.0.0
+  
+  # Background Service
+  flutter_background_service: ^5.0.5
+  flutter_local_notifications: ^17.0.0
 
 dev_dependencies:
   flutter_test:
@@ -40,7 +46,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   
-  # assets:
-  #   - assets/images/
-  #   - assets/sounds/
+  assets:
+    - assets/wake_words/
 

@@ -1,0 +1,218 @@
+{
+  "timestamp": "2025-12-08T14:28:08.261435",
+  "config": {
+    "num_conversation_messages": 5,
+    "num_stress_requests": 3,
+    "num_performance_tests": 5,
+    "enable_audio_test": true,
+    "enable_stress_test": true,
+    "strict_validation": true
+  },
+  "summary": {
+    "total_tests": 5,
+    "passed": 5,
+    "failed": 0,
+    "warnings": 0,
+    "skipped": 0,
+    "total_duration": 137.1492097377777
+  },
+  "results": [
+    {
+      "name": "Conversation Flow",
+      "status": "passed",
+      "duration": 13.90412974357605,
+      "error": null,
+      "metrics": {
+        "status_code": 200,
+        "response_time": 2.4800939083099367,
+        "audio_size": 0,
+        "tokens_used": 6052,
+        "response_length": 0,
+        "has_session_id": false,
+        "has_intent": false,
+        "processing_time": null
+      },
+      "quality": {
+        "relevance": 1.0,
+        "completeness": 0.9333333333333333,
+        "structure": 0.5,
+        "performance": 0.88
+      },
+      "details": {
+        "messages_processed": 5,
+        "total_messages": 5,
+        "avg_response_time": 2.4800939083099367,
+        "total_tokens": 6052,
+        "session_id": "2a544c87-e54a-44ca-b05d-40640aa55271"
+      },
+      "assertions": [
+        [
+          "Mensagem 1 válida",
+          true,
+          null
+        ],
+        [
+          "Mensagem 2 válida",
+          true,
+          null
+        ],
+        [
+          "Mensagem 3 válida",
+          true,
+          "Tokens usados = 0 (pode indicar problema)"
+        ],
+        [
+          "Mensagem 4 válida",
+          true,
+          null
+        ],
+        [
+          "Mensagem 5 válida",
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Architecture Advisor",
+      "status": "passed",
+      "duration": 7.106800317764282,
+      "error": null,
+      "metrics": {
+        "status_code": 200,
+        "response_time": 1.867976427078247,
+        "audio_size": 0,
+        "tokens_used": 0,
+        "response_length": 0,
+        "has_session_id": false,
+        "has_intent": false,
+        "processing_time": null
+      },
+      "quality": {
+        "relevance": 1.0,
+        "completeness": 0.6666666666666666,
+        "structure": 0.5,
+        "performance": 0.9333333333333333
+      },
+      "details": {
+        "scenarios_passed": 3,
+        "total_scenarios": 3,
+        "intent_detection_rate": 1.0
+      },
+      "assertions": [
+        [
+          "Intent detectado em Análise de Requisitos",
+          true,
+          null
+        ],
+        [
+          "Intent detectado em Security Checklist",
+          true,
+          null
+        ],
+        [
+          "Intent detectado em Design de Arquitetura",
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Performance Benchmark",
+      "status": "passed",
+      "duration": 35.78309106826782,
+      "error": null,
+      "metrics": {
+        "status_code": 200,
+        "response_time": 7.156496810913086,
+        "audio_size": 0,
+        "tokens_used": 5512,
+        "response_length": 0,
+        "has_session_id": false,
+        "has_intent": false,
+        "processing_time": null
+      },
+      "quality": {
+        "relevance": 0.966,
+        "completeness": 1.0,
+        "structure": 0.5,
+        "performance": 0.54
+      },
+      "details": {
+        "requests": 5,
+        "avg_time": 7.156496810913086,
+        "median_time": 8.960234880447388,
+        "min_time": 1.9273135662078857,
+        "max_time": 12.61498236656189,
+        "std_dev": 4.915884289177321,
+        "total_tokens": 5512,
+        "throughput": 0.13973080163647356
+      },
+      "assertions": [
+        [
+          "Tempo médio < 10s",
+          true,
+          "Tempo médio: 7.16s"
+        ],
+        [
+          "Tempo máximo < 30s",
+          true,
+          "Tempo máximo: 12.61s"
+        ],
+        [
+          "Throughput > 0.1 req/s",
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Error Handling",
+      "status": "passed",
+      "duration": 42.79551100730896,
+      "error": null,
+      "metrics": null,
+      "quality": null,
+      "details": {
+        "cases_handled": 4,
+        "total_cases": 4
+      },
+      "assertions": [
+        [
+          "Texto vazio tratado corretamente",
+          true,
+          null
+        ],
+        [
+          "Emoji tratado corretamente",
+          true,
+          null
+        ],
+        [
+          "Unicode tratado corretamente",
+          true,
+          null
+        ],
+        [
+          "Texto muito longo tratado corretamente",
+          true,
+          null
+        ]
+      ]
+    },
+    {
+      "name": "Stress Test (Concorrência)",
+      "status": "passed",
+      "duration": 37.559677600860596,
+      "error": null,
+      "metrics": null,
+      "quality": null,
+      "details": {
+        "concurrent_requests": 3,
+        "passed": 3,
+        "avg_response_time": 37.25641366666667
+      },
+      "assertions": []
+    }
+  ]
+}

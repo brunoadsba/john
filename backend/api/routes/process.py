@@ -2,10 +2,15 @@
 Rotas REST para processamento de áudio
 """
 import time
-from fastapi import APIRouter, UploadFile, File, HTTPException, Form
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form, Request
 from fastapi.responses import Response
 from typing import Optional
 from loguru import logger
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+from backend.api.middleware.rate_limit import get_rate_limit
+from backend.api.validators.audio_validator import validate_audio
 
 from backend.services import (
     WhisperSTTService,
@@ -13,28 +18,106 @@ from backend.services import (
     PiperTTSService,
     ContextManager
 )
+from backend.services.intent_detector import IntentDetector
+from backend.config.settings import settings
+from backend.api.utils.headers import sanitize_header_value
+from backend.api.handlers.audio_processor import process_audio_complete
+from backend.api.handlers.text_processor import process_text_complete
 
 
 router = APIRouter(prefix="/api", tags=["process"])
+
+# Rate limiter (será inicializado no main.py)
+limiter: Optional[Limiter] = None
+
+
+def init_rate_limiter(app_limiter: Limiter):
+    """Inicializa o rate limiter"""
+    global limiter
+    limiter = app_limiter
 
 # Instâncias dos serviços (serão inicializadas no startup)
 stt_service: Optional[WhisperSTTService] = None
 llm_service: Optional[BaseLLMService] = None
 tts_service: Optional[PiperTTSService] = None
 context_manager: Optional[ContextManager] = None
+memory_service = None
+plugin_manager = None  # Novo: PluginManager
+web_search_tool = None  # Mantido para compatibilidade
+intent_detector = None  # Detector de intenção para Architecture Advisor
+feedback_service = None  # Serviço de feedback para coleta de dados
+reward_model_service = None  # Modelo de recompensa para RLHF (opcional)
+rlhf_service = None  # Serviço RLHF (opcional)
+response_cache = None  # Cache de respostas (opcional)
 
 
-def init_services(stt, llm, tts, ctx):
-    """Inicializa os serviços"""
-    global stt_service, llm_service, tts_service, context_manager
+def init_services(stt, llm, tts, ctx, memory=None, web_search=None, intent_detector_instance=None, feedback_service_instance=None, response_cache_instance=None):
+    """
+    Inicializa os serviços
+    
+    Args:
+        stt: Serviço de STT
+        llm: Serviço de LLM
+        tts: Serviço de TTS
+        ctx: Gerenciador de contexto
+        memory: Serviço de memória
+        web_search: PluginManager ou web_search_tool (compatibilidade)
+        intent_detector_instance: Instância do IntentDetector
+        feedback_service_instance: Instância do FeedbackService
+    """
+    global stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, web_search_tool, intent_detector, feedback_service, reward_model_service, rlhf_service, response_cache
     stt_service = stt
     llm_service = llm
     tts_service = tts
     context_manager = ctx
+    memory_service = memory
+    feedback_service = feedback_service_instance
+    intent_detector = intent_detector_instance
+    response_cache = response_cache_instance
+    
+    # Aceita PluginManager ou web_search_tool antigo (compatibilidade)
+    from backend.core.plugin_manager import PluginManager
+    if isinstance(web_search, PluginManager):
+        plugin_manager = web_search
+        # Tenta obter web_search_tool do plugin para compatibilidade
+        web_search_plugin = plugin_manager.get_plugin("web_search")
+        if web_search_plugin:
+            web_search_tool = web_search_plugin
+    else:
+        # Modo antigo (compatibilidade)
+        plugin_manager = None
+        web_search_tool = web_search
+    
+    # Inicializa modelo de recompensa e RLHF (opcional)
+    if settings.rlhf_enabled:
+        try:
+            from backend.services.reward_model_service import RewardModelService
+            from backend.services.rlhf_service import RLHFService
+            from pathlib import Path
+            
+            reward_model_path = settings.reward_model_path
+            if reward_model_path and Path(reward_model_path).exists():
+                logger.info(f"Carregando modelo de recompensa de: {reward_model_path}")
+                reward_model_service = RewardModelService()
+                reward_model_service.load_model(reward_model_path)
+                rlhf_service = RLHFService(reward_model_path=reward_model_path)
+                logger.info("✅ Modelo de recompensa e RLHF inicializados")
+            else:
+                logger.info("Modelo de recompensa não encontrado - RLHF desabilitado até treinamento")
+                reward_model_service = None
+                rlhf_service = None
+        except Exception as e:
+            logger.warning(f"Erro ao inicializar RLHF: {e} - continuando sem RLHF")
+            reward_model_service = None
+            rlhf_service = None
+    else:
+        reward_model_service = None
+        rlhf_service = None
 
 
 @router.post("/process_audio")
 async def process_audio(
+    request: Request,
     audio: UploadFile = File(..., description="Arquivo de áudio"),
     session_id: Optional[str] = Form(None, description="ID da sessão")
 ):
@@ -49,67 +132,34 @@ async def process_audio(
         Áudio da resposta + metadados
     """
     try:
-        start_time = time.time()
-        
         logger.info(f"Processando áudio: {audio.filename}")
         
         # Lê dados do áudio
         audio_data = await audio.read()
         
-        # 1. Speech-to-Text
-        logger.info("Etapa 1: Transcrição (STT)")
-        texto_transcrito, confianca, duracao = stt_service.transcribe_audio(audio_data)
+        # Valida áudio
+        validate_audio(audio_data, audio.filename)
         
-        if not texto_transcrito or not texto_transcrito.strip():
-            raise HTTPException(
-                status_code=400, 
-                detail="Não foi possível transcrever o áudio. Verifique se o arquivo contém fala real e está em formato suportado (WAV, 16kHz mono recomendado)."
-            )
-        
-        logger.info(f"Transcrito: '{texto_transcrito}'")
-        
-        # 2. Gerencia contexto
-        if not session_id:
-            session_id = context_manager.create_session()
-        
-        context_manager.add_message(session_id, "user", texto_transcrito)
-        contexto = context_manager.get_context(session_id)
-        
-        # 3. LLM - Gera resposta
-        logger.info("Etapa 2: Geração de resposta (LLM)")
-        resposta_texto, tokens = llm_service.generate_response(
-            texto_transcrito,
-            contexto
+        # Processa usando handler
+        response, session_id, tempo_total = await process_audio_complete(
+            stt_service=stt_service,
+            llm_service=llm_service,
+            tts_service=tts_service,
+            context_manager=context_manager,
+            memory_service=memory_service,
+            plugin_manager=plugin_manager,
+            web_search_tool=web_search_tool,
+            reward_model_service=reward_model_service,
+            rlhf_service=rlhf_service,
+            feedback_service=feedback_service,
+            audio_data=audio_data,
+            session_id=session_id
         )
         
-        context_manager.add_message(session_id, "assistant", resposta_texto)
+        return response
         
-        logger.info(f"Resposta: '{resposta_texto}'")
-        
-        # 4. Text-to-Speech
-        logger.info("Etapa 3: Síntese de voz (TTS)")
-        audio_resposta = tts_service.synthesize(resposta_texto)
-        
-        tempo_total = time.time() - start_time
-        
-        logger.info(
-            f"Processamento completo em {tempo_total:.2f}s: "
-            f"STT -> '{texto_transcrito}' -> LLM -> '{resposta_texto}' -> TTS"
-        )
-        
-        # Retorna áudio com headers informativos
-        return Response(
-            content=audio_resposta,
-            media_type="audio/wav",
-            headers={
-                "X-Transcription": texto_transcrito,
-                "X-Response-Text": resposta_texto,
-                "X-Session-ID": session_id,
-                "X-Processing-Time": str(tempo_total),
-                "X-Tokens-Used": str(tokens)
-            }
-        )
-        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Erro no processamento: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -160,7 +210,7 @@ async def synthesize_text(texto: str = Form(..., description="Texto para sinteti
     try:
         logger.info(f"Sintetizando texto: '{texto[:50]}...'")
         
-        audio_data = tts_service.synthesize(texto)
+        audio_data = await tts_service.synthesize(texto)
         
         return Response(
             content=audio_data,
@@ -183,7 +233,7 @@ async def get_session_info(session_id: str):
     Returns:
         Informações da sessão
     """
-    info = context_manager.get_session_info(session_id)
+    info = await context_manager.get_session_info(session_id)
     
     if not info:
         raise HTTPException(status_code=404, detail="Sessão não encontrada")
@@ -202,6 +252,77 @@ async def delete_session(session_id: str):
     Returns:
         Confirmação
     """
-    context_manager.delete_session(session_id)
+    await context_manager.delete_session(session_id)
     return {"message": "Sessão removida com sucesso"}
+
+
+@router.post("/process_text")
+async def process_text(
+    request: Request,
+    texto: str = Form(..., description="Texto para processar (simula STT)"),
+    session_id: Optional[str] = Form(None, description="ID da sessão"),
+    system_prompt: Optional[str] = Form(None, description="System prompt customizado (para evolução)")
+):
+    """
+    Processa texto diretamente (sem STT): LLM -> TTS
+    Rate limit: 30 requisições por minuto por IP
+    """
+    """
+    Processa texto diretamente (sem STT): LLM -> TTS
+    Útil para testes sem precisar de áudio real
+    Rate limit: 30 requisições por minuto por IP
+    
+    Args:
+        texto: Texto para processar
+        session_id: ID da sessão para manter contexto
+        
+    Returns:
+        Áudio da resposta + metadados
+    """
+    try:
+        logger.info(f"Processando texto: '{texto}'")
+        
+        # Processa usando handler
+        response, session_id, tempo_total = await process_text_complete(
+            llm_service=llm_service,
+            tts_service=tts_service,
+            context_manager=context_manager,
+            memory_service=memory_service,
+            intent_detector=intent_detector,
+            plugin_manager=plugin_manager,
+            web_search_tool=web_search_tool,
+            reward_model_service=reward_model_service,
+            rlhf_service=rlhf_service,
+            feedback_service=feedback_service,
+            texto=texto,
+            session_id=session_id,
+            system_prompt=system_prompt,
+            response_cache=response_cache
+        )
+        
+        return response
+        
+    except RuntimeError as e:
+        # Erro de rate limit ou similar - retorna mensagem mais amigável
+        error_msg = str(e)
+        if "rate limit" in error_msg.lower() or "429" in error_msg:
+            logger.warning(f"Rate limit atingido: {error_msg}")
+            raise HTTPException(
+                status_code=429,
+                detail="Limite de requisições atingido. Por favor, tente novamente em alguns minutos. "
+                       "O sistema está tentando usar fallback automático."
+            )
+        else:
+            raise HTTPException(status_code=500, detail=error_msg)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Erro no processamento: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Funções _format_architecture_response e _create_natural_response 
+# movidas para backend/api/utils/architecture_formatter.py
 

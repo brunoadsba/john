@@ -1,0 +1,52 @@
+[
+  {
+    "model_name": "mistral-small:latest",
+    "available": false,
+    "supports_tools": false,
+    "response_time": 0,
+    "tokens_per_second": 0,
+    "response_quality": "Modelo não disponível",
+    "error": "Modelo não encontrado localmente",
+    "ram_usage_mb": null
+  },
+  {
+    "model_name": "mistral:7b-instruct",
+    "available": false,
+    "supports_tools": false,
+    "response_time": 0,
+    "tokens_per_second": 0,
+    "response_quality": "Modelo não disponível",
+    "error": "Modelo não encontrado localmente",
+    "ram_usage_mb": null
+  },
+  {
+    "model_name": "mistral:latest",
+    "available": false,
+    "supports_tools": false,
+    "response_time": 0,
+    "tokens_per_second": 0,
+    "response_quality": "Modelo não disponível",
+    "error": "Modelo não encontrado localmente",
+    "ram_usage_mb": null
+  },
+  {
+    "model_name": "mistral-medium:latest",
+    "available": false,
+    "supports_tools": false,
+    "response_time": 0,
+    "tokens_per_second": 0,
+    "response_quality": "Modelo não disponível",
+    "error": "Modelo não encontrado localmente",
+    "ram_usage_mb": null
+  },
+  {
+    "model_name": "mistral:8x7b",
+    "available": false,
+    "supports_tools": false,
+    "response_time": 0,
+    "tokens_per_second": 0,
+    "response_quality": "Modelo não disponível",
+    "error": "Modelo não encontrado localmente",
+    "ram_usage_mb": null
+  }
+]

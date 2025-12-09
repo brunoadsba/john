@@ -48,3 +48,95 @@ htmlcov/
 # Docker
 *.pid
 
+# Arquivos temporários e de debug
+*.bak
+*.tmp
+*_temp.md
+*_DEBUG.md
+*_TESTE.md
+*_TESTES.md
+*_RESUMO.md
+*_RELATORIO.md
+*_RESULTADO.md
+*_STATUS.md
+*_VERIFICACAO.md
+*_CORRECAO.md
+*_CORRECOES.md
+*_IMPLEMENTACAO.md
+*_IMPLEMENTACOES.md
+*_INTEGRACAO.md
+*_ANALISE.md
+*_AVALIACAO.md
+*_DIAGNOSTICO.md
+*_PROBLEMA.md
+*_SOLUCAO.md
+*_MIGRACAO.md
+*_REFATORACAO.md
+*_PENDENCIAS.md
+*_PLANO.md
+*_GUIA.md
+*_INSTRUCOES.md
+*_FEATURE_*.md
+*_APK_*.md
+*_BUILD_*.md
+*_TESTE_*.md
+*_TESTES_*.md
+*_RESUMO_*.md
+*_RELATORIO_*.md
+*_RESULTADO_*.md
+*_STATUS_*.md
+*_VERIFICACAO_*.md
+*_CORRECAO_*.md
+*_CORRECOES_*.md
+*_IMPLEMENTACAO_*.md
+*_IMPLEMENTACOES_*.md
+*_INTEGRACAO_*.md
+*_ANALISE_*.md
+*_AVALIACAO_*.md
+*_DIAGNOSTICO_*.md
+*_PROBLEMA_*.md
+*_SOLUCAO_*.md
+*_MIGRACAO_*.md
+*_REFATORACAO_*.md
+*_PENDENCIAS_*.md
+*_PLANO_*.md
+*_GUIA_*.md
+*_INSTRUCOES_*.md
+
+# Arquivos de teste e scripts temporários
+teste_*.sh
+teste_*.py
+*_teste.sh
+*_teste.py
+
+# Arquivos de build e cache
+build/
+dist/
+*.zip
+*.tar.gz
+
+# Arquivos de configuração local
+.env.local
+.env.*.local
+
+# Arquivos de documentação interna (manter apenas principais)
+docs/_arquivados/
+docs/*_INTERNO.md
+docs/*_DEBUG.md
+
+# Arquivos de dados locais
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+
+# Arquivos de versão temporários
+=*.0
+backend/=*.0
+
+# Arquivos de treinamento temporários
+training_*.json
+training_*.md
+
+# Headers e arquivos temporários
+headers.txt

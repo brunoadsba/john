@@ -1,187 +1,220 @@
-import 'package:flutter/foundation.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import '../models/message.dart';
-
 /// Serviço de comunicação com a API do Jonh Assistant
+import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:async';
+
+import 'api/websocket_client.dart';
+import 'api/connection_manager.dart';
+import 'api/message_handler.dart';
+import 'streaming_service.dart';
+import '../models/message.dart';
+import '../utils/performance_metrics.dart';
+import 'error_monitor.dart';
+
 class ApiService extends ChangeNotifier {
-  // TODO: Configure o IP da sua máquina na rede local
-  // Descubra com: hostname -I (Linux) ou ipconfig (Windows)
-  static const String baseUrl = 'http://172.20.240.80:8000';
-  static const String wsUrl = 'ws://172.20.240.80:8000/ws/listen';
-  
-  // Para desenvolvimento local, use:
-  // static const String baseUrl = 'http://localhost:8000';
-  // static const String wsUrl = 'ws://localhost:8000/ws/listen';
-  
-  WebSocketChannel? _channel;
+  final WebSocketClient _wsClient = WebSocketClient();
+  final ConnectionManager _connectionManager = ConnectionManager();
+  final MessageHandler _messageHandler = MessageHandler();
+  final StreamingService _streamingService = StreamingService();
+
   String? _sessionId;
   bool _isConnected = false;
-  
+  bool _isStreaming = false;
+
   bool get isConnected => _isConnected;
+  bool get isStreaming => _isStreaming;
   String? get sessionId => _sessionId;
-  
-  final List<Message> _messages = [];
-  List<Message> get messages => List.unmodifiable(_messages);
-  
+  PerformanceMetrics get metrics => _messageHandler.metrics;
+  List<Message> get messages => _messageHandler.messages;
+
+  /// Callback para reproduzir áudio quando recebido
+  Function(Uint8List)? onAudioReceived;
+
+  ApiService() {
+    _wsClient.onMessage = (data) => _messageHandler.handleMessage(data);
+    _wsClient.onError = (_) => _handleDisconnection();
+    _wsClient.onDone = () => _handleDisconnection();
+    _messageHandler.onAudioReceived = (audio) {
+      if (onAudioReceived != null) {
+        onAudioReceived!(audio);
+      }
+    };
+    
+    // Configura callbacks do streaming
+    _streamingService.onStart = (sessionId) {
+      _sessionId = sessionId;
+      _isStreaming = true;
+      notifyListeners();
+    };
+    
+    _streamingService.onTokenReceived = (token) {
+      _messageHandler.handleStreamingToken(token);
+      notifyListeners();
+    };
+    
+    _streamingService.onComplete = (fullText, tokens, cached) {
+      _isStreaming = false;
+      _messageHandler.handleStreamingComplete(fullText, tokens, cached);
+      notifyListeners();
+    };
+    
+    _streamingService.onError = (error) {
+      _isStreaming = false;
+      _messageHandler.handleStreamingError(error);
+      notifyListeners();
+    };
+  }
+
+  /// Testa conexão com o servidor
+  Future<bool> testConnection() async {
+    return await _connectionManager.testConnection();
+  }
+
   /// Conecta ao WebSocket
   Future<void> connect() async {
+    if (_isConnected) {
+      debugPrint('✅ WebSocket já está conectado');
+      return;
+    }
+
     try {
-      _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
-      _isConnected = true;
+      final isServerAvailable = await _connectionManager.testConnection();
+      if (!isServerAvailable) {
+        throw Exception('Servidor não está acessível');
+      }
+
+      await _wsClient.connect();
+      _isConnected = _wsClient.isConnected;
       
-      // Escuta mensagens do servidor
-      _channel!.stream.listen(
-        _handleWebSocketMessage,
-        onError: (error) {
-          debugPrint('WebSocket error: $error');
-          _isConnected = false;
-          notifyListeners();
-        },
-        onDone: () {
-          debugPrint('WebSocket closed');
-          _isConnected = false;
-          notifyListeners();
-        },
+      if (_isConnected) {
+        _connectionManager.resetAttempts();
+        startSession();
+        notifyListeners();
+      }
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erro ao conectar: $e');
+      ErrorMonitor.reportError(
+        message: 'Erro ao conectar WebSocket: $e',
+        stackTrace: stackTrace.toString(),
+        level: 'error',
+        type: 'network',
+        additionalContext: {'action': 'connect'},
       );
-      
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Erro ao conectar WebSocket: $e');
-      _isConnected = false;
-      notifyListeners();
+      _handleDisconnection();
+      rethrow;
     }
   }
-  
+
+  void _handleDisconnection() {
+    if (_isConnected) {
+      _isConnected = false;
+      notifyListeners();
+      _connectionManager.scheduleReconnect(() => connect());
+    }
+  }
+
   /// Desconecta do WebSocket
   void disconnect() {
-    _channel?.sink.close();
-    _channel = null;
+    _connectionManager.cancelReconnect();
+    _wsClient.disconnect();
     _isConnected = false;
     _sessionId = null;
     notifyListeners();
   }
-  
-  /// Envia áudio para processamento
+
+  /// Envia áudio via WebSocket
   Future<void> sendAudio(List<int> audioBytes) async {
-    if (!_isConnected || _channel == null) {
-      throw Exception('WebSocket não conectado');
+    if (!_isConnected) {
+      debugPrint('⚠️ WebSocket não conectado');
+      return;
     }
-    
-    // Envia bytes de áudio
-    _channel!.sink.add(audioBytes);
+
+    try {
+      metrics.markAudioSent();
+      _wsClient.send(Uint8List.fromList(audioBytes));
+      debugPrint('📤 Áudio enviado: ${audioBytes.length} bytes');
+    } catch (e) {
+      debugPrint('❌ Erro ao enviar áudio: $e');
+    }
   }
-  
+
+  /// Envia texto e recebe streaming de resposta
+  Future<void> sendText(String text) async {
+    if (_isStreaming) {
+      debugPrint('⚠️ Streaming já está ativo');
+      return;
+    }
+
+    try {
+      // Adiciona mensagem do usuário
+      _messageHandler.addUserMessage(text);
+      notifyListeners();
+
+      // Inicia streaming
+      await _streamingService.streamText(
+        text: text,
+        sessionId: _sessionId,
+      );
+    } catch (e) {
+      debugPrint('❌ Erro ao enviar texto: $e');
+      _isStreaming = false;
+      notifyListeners();
+    }
+  }
+
+  /// Cancela streaming atual
+  Future<void> cancelStreaming() async {
+    if (_isStreaming) {
+      await _streamingService.cancel();
+      _isStreaming = false;
+      notifyListeners();
+    }
+  }
+
   /// Envia mensagem de controle
   void sendControlMessage(Map<String, dynamic> message) {
-    if (!_isConnected || _channel == null) return;
-    _channel!.sink.add(jsonEncode(message));
+    if (!_isConnected) {
+      debugPrint('⚠️ WebSocket não conectado');
+      return;
+    }
+
+    _wsClient.send(jsonEncode(message));
   }
-  
-  /// Inicia nova sessão
+
+  /// Inicia sessão
   void startSession() {
     sendControlMessage({'type': 'start_session'});
   }
-  
+
   /// Encerra sessão
   void endSession() {
     sendControlMessage({'type': 'end_session'});
+    _sessionId = null;
   }
-  
-  /// Processa mensagens do WebSocket
-  void _handleWebSocketMessage(dynamic data) {
-    if (data is String) {
-      // Mensagem JSON
-      try {
-        final json = jsonDecode(data);
-        final type = json['type'];
-        
-        switch (type) {
-          case 'session_started':
-          case 'session_created':
-            _sessionId = json['session_id'];
-            _addSystemMessage('Sessão iniciada');
-            break;
-            
-          case 'transcription':
-            final text = json['text'];
-            _addMessage(Message(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              content: text,
-              type: MessageType.user,
-            ));
-            break;
-            
-          case 'response':
-            final text = json['text'];
-            _addMessage(Message(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              content: text,
-              type: MessageType.assistant,
-            ));
-            break;
-            
-          case 'processing':
-            final stage = json['stage'];
-            _addSystemMessage('Processando: $stage');
-            break;
-            
-          case 'error':
-            final message = json['message'];
-            _addMessage(Message(
-              id: DateTime.now().millisecondsSinceEpoch.toString(),
-              content: message,
-              type: MessageType.error,
-            ));
-            break;
-        }
-      } catch (e) {
-        debugPrint('Erro ao processar mensagem JSON: $e');
-      }
-    } else if (data is List<int>) {
-      // Dados de áudio recebidos
-      debugPrint('Áudio recebido: ${data.length} bytes');
-      // TODO: Reproduzir áudio
-    }
-  }
-  
-  /// Adiciona mensagem à lista
-  void _addMessage(Message message) {
-    _messages.add(message);
-    notifyListeners();
-  }
-  
-  /// Adiciona mensagem do sistema
-  void _addSystemMessage(String content) {
-    _addMessage(Message(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      content: content,
-      type: MessageType.system,
-    ));
-  }
-  
-  /// Limpa histórico de mensagens
+
+  /// Limpa mensagens
   void clearMessages() {
-    _messages.clear();
+    _messageHandler.clearMessages();
     notifyListeners();
   }
-  
-  /// Testa conexão com a API
-  Future<bool> testConnection() async {
-    try {
-      final response = await http.get(Uri.parse('$baseUrl/health'));
-      return response.statusCode == 200;
-    } catch (e) {
-      debugPrint('Erro ao testar conexão: $e');
-      return false;
-    }
+
+  /// Reseta métricas
+  void resetMetrics() {
+    _messageHandler.resetMetrics();
   }
-  
+
+  /// Cancela reconexão
+  void cancelReconnect() {
+    _connectionManager.cancelReconnect();
+  }
+
   @override
   void dispose() {
     disconnect();
+    _streamingService.dispose();
+    _wsClient.dispose();
+    _connectionManager.dispose();
     super.dispose();
   }
 }
-

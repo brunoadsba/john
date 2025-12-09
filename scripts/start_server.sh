@@ -33,17 +33,21 @@ if [ ! -d "backend/.venv" ]; then
     exit 1
 fi
 
-# Verifica Ollama
-if ! pgrep -x "ollama" > /dev/null; then
-    warn "Ollama não está rodando. Iniciando..."
-    ollama serve > /dev/null 2>&1 &
-    sleep 3
+# Verifica se a porta 8000 está em uso
+if lsof -ti:8000 > /dev/null 2>&1; then
+    warn "Porta 8000 já está em uso. Encerrando processos..."
+    lsof -ti:8000 | xargs kill -9 2>/dev/null || true
+    sleep 2
 fi
 
-# Verifica modelo
-if ! ollama list | grep -q "llama3"; then
-    error "Modelo Llama3 não encontrado. Execute: ollama pull llama3:8b-instruct-q4_0"
-    exit 1
+# Verifica Ollama (opcional - apenas se usar Ollama)
+if ! pgrep -x "ollama" > /dev/null; then
+    warn "Ollama não está rodando. (Pode ignorar se estiver usando Groq)"
+fi
+
+# Verifica modelo Ollama (opcional)
+if pgrep -x "ollama" > /dev/null && ! ollama list 2>/dev/null | grep -q "llama3"; then
+    warn "Modelo Llama3 não encontrado. (Pode ignorar se estiver usando Groq)"
 fi
 
 echo ""

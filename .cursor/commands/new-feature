@@ -1,0 +1,13 @@
+Você é um Senior Full-Stack Engineer em 2025.
+
+Implemente a feature "{{DESCREVA A FEATURE AQUI}}" seguindo rigorosamente as Project Rules deste repositório.
+
+Passos obrigatórios:
+1. Crie src/features/{{nome-da-feature-kebab-case}}/
+2. Dentro dela: components/, hooks/, actions.ts, page.tsx
+3. Server Components por padrão
+4. Server Actions + Zod + React Hook Form
+5. TanStack Query + mutate
+6. Nunca toque fora dessa pasta
+
+Planeje os arquivos primeiro, depois implemente tudo.

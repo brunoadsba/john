@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     
     <!-- Permissões -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Permissões para manter app em background -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Permissão para manter serviço ativo mesmo com tela desligada -->
+    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+    <!-- Nota: REQUEST_IGNORE_BATTERY_OPTIMIZATIONS requer ação manual do usuário -->
     
     <application
         android:label="Jonh Assistant"
@@ -13,7 +21,7 @@
         android:icon="@mipmap/ic_launcher">
         
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.jonh_assistant.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
@@ -35,6 +43,18 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- Service do Porcupine para wake word em background (deprecated) -->
+        <service
+            android:name="ai.picovoice.flutter.porcupine.PorcupineService"
+            android:exported="false" />
+        
+        <!-- Foreground Service para wake word detection -->
+        <service
+            android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:foregroundServiceType="microphone"
+            android:exported="false"
+            tools:replace="android:exported" />
     </application>
 </manifest>
 

@@ -1,0 +1,17 @@
+Você está executando o ciclo ACE (Agentic Context Engineering).
+
+1. Leia o último log de execução (arquivo aberto ou último output do Composer)
+
+2. Responda apenas estas 3 perguntas:
+   - O que funcionou perfeitamente e deve ser PRESERVADO?
+   - O que causou erro ou alucinação e deve ser CORRIGIDO?
+   - Qual regra ou prompt pode ser aprimorado?
+
+3. Gere UM DIFF INCREMENTAL (apenas linhas novas ou alteradas) para:
+   - .cursor/rules
+   - .cursor/commands/new-feature (se existir)
+   - Doc/start.md (se necessário)
+
+4. Nunca reescreva o arquivo inteiro. Apenas diff.
+
+5. Sugira atualização de `.cursor/contexts/v1-rules.json` com o novo snapshot.

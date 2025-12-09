@@ -14,13 +14,10 @@ from loguru import logger
 from datetime import datetime
 
 from backend.config import settings
-from backend.services import (
-    WhisperSTTService,
-    create_llm_service,
-    PiperTTSService,
-    ContextManager
-)
-from backend.api.routes import process, websocket
+from backend.api.routes import process, websocket, web_interface, feedback, health, analytics, streaming
+from backend.api.routes.errors import router as errors_router, init_error_services
+from backend.api.middleware.rate_limit import setup_rate_limiting
+from backend.api.startup.services_initializer import initialize_all_services
 
 
 # Configuração do logger
@@ -49,65 +46,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Configuração de Rate Limiting
+app_limiter = setup_rate_limiting(app)
+
 # Instâncias globais dos serviços
 stt_service = None
 llm_service = None
 tts_service = None
+wake_word_service = None
 context_manager = None
+cleanup_service = None
+feedback_service = None
 
 
 @app.on_event("startup")
 async def startup_event():
     """Inicializa serviços no startup da aplicação"""
-    global stt_service, llm_service, tts_service, context_manager
+    global stt_service, llm_service, tts_service, wake_word_service, context_manager
+    global database, memory_service, cleanup_service, feedback_service
     
     logger.info("=" * 60)
     logger.info("Iniciando Jonh Assistant API")
     logger.info("=" * 60)
     
     try:
-        # Inicializa serviços
-        logger.info("Inicializando serviços de IA...")
-        
-        stt_service = WhisperSTTService(
-            model_size=settings.whisper_model,
-            device=settings.whisper_device,
-            compute_type=settings.whisper_compute_type
-        )
-        
-        # Cria serviço LLM baseado no provider configurado
-        logger.info(f"Usando LLM provider: {settings.llm_provider}")
-        
-        if settings.llm_provider.lower() == "groq":
-            llm_service = create_llm_service(
-                provider="groq",
-                api_key=settings.groq_api_key,
-                model=settings.groq_model,
-                temperature=settings.llm_temperature,
-                max_tokens=settings.llm_max_tokens
-            )
-        else:  # ollama
-            llm_service = create_llm_service(
-                provider="ollama",
-                model=settings.ollama_model,
-                host=settings.ollama_host,
-                temperature=settings.llm_temperature,
-                max_tokens=settings.llm_max_tokens
-            )
-        
-        tts_service = PiperTTSService(
-            voice=settings.piper_voice,
-            model_path=settings.piper_model_path
-        )
-        
-        context_manager = ContextManager(
-            max_history=10,
-            session_timeout=3600
-        )
+        # Inicializa todos os serviços
+        base_path = Path(__file__).parent.parent.parent
+        (
+            stt_service,
+            llm_service,
+            tts_service,
+            wake_word_service,
+            context_manager,
+            memory_service,
+            feedback_service,
+            cleanup_service,
+            plugin_manager,
+            intent_detector,
+            database,
+            embedding_service,
+            clustering_service,
+            response_cache
+        ) = await initialize_all_services(base_path)
         
         # Inicializa serviços nas rotas
-        process.init_services(stt_service, llm_service, tts_service, context_manager)
-        websocket.init_services(stt_service, llm_service, tts_service, context_manager)
+        process.init_services(stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, intent_detector, feedback_service, response_cache)
+        process.init_rate_limiter(app_limiter)
+        websocket.init_services(stt_service, llm_service, tts_service, wake_word_service, context_manager, memory_service, plugin_manager, feedback_service)
+        web_interface.init_services(stt_service, llm_service, tts_service, context_manager, memory_service)
+        feedback.init_feedback_service(feedback_service)
+        health.init_health_services(stt_service, llm_service, tts_service, context_manager)
+        analytics.init_analytics_services(database, embedding_service)
+        init_error_services(database)
+        streaming.init_services(llm_service, context_manager, memory_service, plugin_manager, intent_detector, response_cache)
         
         logger.info("Serviços inicializados com sucesso")
         logger.info(f"Servidor rodando em {settings.host}:{settings.port}")
@@ -123,10 +114,21 @@ async def shutdown_event():
     """Cleanup ao desligar a aplicação"""
     logger.info("Encerrando Jonh Assistant API...")
     
-    # Limpa sessões
+    # Limpa sessões expiradas
     if context_manager:
-        for session_id in context_manager.get_all_sessions():
-            context_manager.delete_session(session_id)
+        await context_manager.cleanup_expired_sessions()
+    
+    # Executa limpeza automática
+    if cleanup_service:
+        try:
+            await cleanup_service.cleanup_all()
+        except Exception as e:
+            logger.warning(f"Erro na limpeza automática: {e}")
+    
+    # Fecha banco de dados
+    if database:
+        await database.close()
+        logger.info("Banco de dados fechado")
     
     logger.info("API encerrada")
 
@@ -142,56 +144,6 @@ async def root():
     }
 
 
-@app.get("/health", tags=["health"])
-async def health_check():
-    """
-    Health check da aplicação
-    
-    Verifica status de todos os serviços
-    """
-    servicos_status = {
-        "stt": "offline",
-        "llm": "offline",
-        "tts": "offline",
-        "context": "offline"
-    }
-    
-    try:
-        if stt_service and stt_service.is_ready():
-            servicos_status["stt"] = "online"
-    except Exception as e:
-        logger.error(f"STT health check falhou: {e}")
-    
-    try:
-        if llm_service and llm_service.is_ready():
-            servicos_status["llm"] = "online"
-    except Exception as e:
-        logger.error(f"LLM health check falhou: {e}")
-    
-    try:
-        if tts_service and tts_service.is_ready():
-            servicos_status["tts"] = "online"
-    except Exception as e:
-        logger.error(f"TTS health check falhou: {e}")
-    
-    if context_manager:
-        servicos_status["context"] = "online"
-    
-    # Determina status geral
-    all_online = all(status == "online" for status in servicos_status.values())
-    status_geral = "healthy" if all_online else "degraded"
-    
-    return {
-        "status": status_geral,
-        "versao": "1.0.0",
-        "servicos": servicos_status,
-        "timestamp": datetime.now().isoformat(),
-        "configuracao": {
-            "whisper_model": settings.whisper_model,
-            "ollama_model": settings.ollama_model,
-            "piper_voice": settings.piper_voice
-        }
-    }
 
 
 @app.get("/sessions", tags=["sessions"])
@@ -212,6 +164,12 @@ async def list_sessions():
 # Registra rotas
 app.include_router(process.router)
 app.include_router(websocket.router)
+app.include_router(web_interface.router)
+app.include_router(feedback.router)
+app.include_router(health.router)
+app.include_router(analytics.router)
+app.include_router(streaming.router)
+app.include_router(errors_router)
 
 
 # Handler de erros global

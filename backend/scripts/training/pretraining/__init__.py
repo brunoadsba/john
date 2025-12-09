@@ -1,0 +1,4 @@
+"""
+Scripts de pré-treinamento
+"""
+
