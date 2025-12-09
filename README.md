@@ -4,25 +4,30 @@ Assistente de voz 100% local e profissional, similar à Alexa, rodando inteirame
 
 ## Características
 
-- **100% Local**: Todo processamento de IA roda no seu computador
-- **Zero Custo**: Tecnologias open-source, sem mensalidades
-- **Português Nativo**: Otimizado para português brasileiro
-- **Baixa Latência**: Resposta em menos de 2 segundos
-- **Privacidade Total**: Seus dados não saem do seu computador
+- **100% local**: processamento de IA no seu hardware (Ollama) ou Groq (cloud)
+- **Streaming LLM (SSE)**: resposta começa a aparecer em tempo real
+- **Baixa latência**: pipeline otimizado com paralelismo e cache (< 2s alvo)
+- **Cache inteligente**: respostas e TTS com pré-aquecimento
+- **Português nativo**: parâmetros ajustados para pt-BR (STT/TTS)
+- **Tool calling**: busca web automática (DuckDuckGo/Tavily)
+- **Monitoramento de performance**: métricas end-to-end e script de análise
 
 ## Arquitetura
 
 ### Backend (Python/FastAPI)
-- **Speech-to-Text**: faster-whisper (Whisper da OpenAI otimizado)
-- **LLM**: Ollama (local) ou Groq (cloud) + Llama 3.1 8B
-- **Text-to-Speech**: Piper TTS (voz pt_BR natural)
-- **API**: FastAPI com endpoints REST e WebSocket
+- **STT**: faster-whisper ajustado (beam=3, VAD otimizado, cache de modelo)
+- **LLM**: Ollama (local) ou Groq (cloud) com streaming SSE
+  - **Tool calling**: busca web via plugin (DuckDuckGo/Tavily)
+- **TTS**: Piper TTS + cache/pre-warm (edge-tts opcional)
+- **API**: FastAPI com REST + SSE (`/api/stream_text`)
+- **Performance**: paralelismo (contexto/memória), caches (resposta/TTS), métricas
 
 ### Mobile App (Flutter)
-- **Interface de Chat**: Conversação fluida com o assistente
-- **Gravação de Áudio**: Captura otimizada (16kHz mono)
-- **WebSocket**: Comunicação em tempo real
-- **Wake Word**: Detecção por voz "Jonh" (em desenvolvimento)
+- **Arquitetura feature-based**: domínios de voz, wake word, chat
+- **Interface de chat**: texto + áudio com resposta em streaming
+- **Streaming SSE**: `StreamingService` consome `/api/stream_text`
+- **Wake word**: background service com reconexão
+- **Métricas**: performance end-to-end no app e no backend
 
 ## Requisitos
 
@@ -32,110 +37,76 @@ Assistente de voz 100% local e profissional, similar à Alexa, rodando inteirame
 - Armazenamento: 20 GB livres para modelos
 - GPU: Opcional (NVIDIA com CUDA para melhor performance)
 
+**Testado em:** Galaxy Book 2 (32GB RAM, 1TB NVMe, i5/i7 12ª gen) ✅
+
 ### Software
 - Windows 11 com WSL2 (Ubuntu 22.04 ou 24.04)
 - Python 3.10+
-- Ollama instalado e rodando
+- Flutter 3.35+
+- Android Studio (para desenvolvimento mobile)
+- Ollama instalado e rodando (opcional - pode usar Groq)
 
 ## Instalação
 
-### 1. Preparar Ambiente
-
+### 1) Backend
 ```bash
-# Clone o repositório
-cd /home/seu-usuario
+# Clone
 git clone <seu-repositorio> john
 cd john
 
-# Crie ambiente virtual
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-```
+# Ambiente virtual
+python3 -m venv backend/.venv
+source backend/.venv/bin/activate
 
-### 2. Instalar Dependências
+# Dependências
+pip install -r backend/requirements.txt
 
-```bash
-# Instale as dependências Python
-pip install -r requirements.txt
-```
-
-### 3. Configurar LLM (Escolha uma opção)
-
-#### Opção A: Ollama (Local - 100% Privado)
-
-```bash
-# Verifique se Ollama está instalado
-ollama --version
-
-# Baixe o modelo Llama 3.1 8B
-ollama pull llama3:8b-instruct-q4_0
-
-# Verifique os modelos instalados
-ollama list
-```
-
-#### Opção B: Groq (Cloud - Ultra Rápido)
-
-```bash
-# 1. Crie conta em https://console.groq.com/
-# 2. Obtenha sua API key
-# 3. Configure no .env:
-nano .env
-# Mude: LLM_PROVIDER=groq
-# Adicione: GROQ_API_KEY=sua_chave_aqui
-```
-
-**Veja documentação completa**: [docs/GROQ_SETUP.md](docs/GROQ_SETUP.md)
-
-### 4. Configurar Variáveis de Ambiente
-
-```bash
-# Copie o arquivo de exemplo
+# Variáveis de ambiente
 cp .env.example .env
-
-# Edite conforme necessário
-nano .env
+nano .env   # escolha LLM_PROVIDER=groq ou ollama e configure chaves
 ```
 
-### 5. Iniciar o Servidor
-
+Iniciar servidor (expondo para o mobile):
 ```bash
-# No diretório raiz do projeto
-cd ~/john
-python3 backend/api/main.py
+cd backend
+source .venv/bin/activate
+uvicorn backend.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-O servidor estará disponível em: `http://localhost:8000`
-
-### 6. Executar Mobile App (Opcional)
-
-**Método Automático (Recomendado):**
+### 2) Mobile (opcional)
 ```bash
-# Script atualiza IP automaticamente e executa o app
-./scripts/run_mobile_app.sh
-```
+# Verifique/ajuste URL do backend em env.dart
+./scripts/check_mobile_config.sh
 
-**Método Manual:**
-```bash
-# Atualizar IP automaticamente
-./scripts/update_mobile_ip.sh
-
-# Instalar dependências
 cd mobile_app
 flutter pub get
-
-# Execute o app
-flutter run
+flutter run        # ou: flutter run -d chrome
 ```
 
-**O script detecta e atualiza o IP automaticamente quando você muda de rede WiFi!** 🎉
+Build de APK:
+```bash
+cd mobile_app
+flutter build apk --release
+# Saída: build/app/outputs/flutter-apk/app-release.apk
+```
 
-**Documentação completa:**
-- [Backend](docs/INSTALACAO.md)
-- [Mobile App](docs/MOBILE_APP.md)
-- [Wake Word](docs/WAKE_WORD.md)
-- [Arquitetura](docs/ARQUITETURA.md)
+### 3) Testes rápidos
+```bash
+# Health
+curl http://127.0.0.1:8000/health
+
+# Streaming LLM (SSE)
+curl -N "http://127.0.0.1:8000/api/stream_text?texto=oi%20jonh"
+
+# Script de métricas
+python3 backend/scripts/analyze_performance.py
+```
+
+Documentação complementar:
+- [docs/STATUS_PROJETO.md](docs/STATUS_PROJETO.md)
+- [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
+- [docs/MOBILE_APP.md](docs/MOBILE_APP.md)
+- [PLAN.md](PLAN.md)
 
 ## Uso
 
@@ -185,9 +156,13 @@ Exemplo de protocolo:
 
 ### Testes Automatizados
 ```bash
-# Execute os testes
 cd backend
-pytest tests/ -v
+source .venv/bin/activate
+pytest -v
+
+# Web E2E (Playwright)
+cd ..
+./scripts/test_playwright.sh
 ```
 
 ### Teste Manual
@@ -205,12 +180,17 @@ john/
 │   │   ├── main.py              # Aplicação FastAPI principal
 │   │   └── routes/
 │   │       ├── process.py       # Endpoints REST
-│   │       └── websocket.py     # Endpoints WebSocket
+│   │       ├── websocket.py     # Endpoints WebSocket
+│   │       └── streaming.py     # SSE /api/stream_text
+│   ├── api/handlers/
+│   │   ├── parallel_processor.py      # Pipeline paralelo (STT/contexto/tools)
+│   │   └── response_cache_handler.py  # Cache inteligente de respostas
 │   ├── services/
-│   │   ├── stt_service.py       # Speech-to-Text (Whisper)
-│   │   ├── llm_service.py       # LLM (Ollama)
-│   │   ├── tts_service.py       # Text-to-Speech (Piper)
-│   │   └── context_manager.py   # Gerenciamento de contexto
+│   │   ├── stt_service.py       # Speech-to-Text (Whisper otimizado)
+│   │   ├── llm/                 # Serviços LLM (Groq/Ollama + streaming)
+│   │   ├── tts_service.py       # Text-to-Speech (Piper + cache)
+│   │   ├── tts_cache.py         # Cache e pré-aquecimento de TTS
+│   │   └── response_cache.py    # Cache semântico de respostas
 │   ├── models/
 │   │   └── schemas.py           # Schemas Pydantic
 │   ├── config/
@@ -225,10 +205,24 @@ john/
 │   │   ├── models/              # Modelos de dados
 │   │   ├── screens/             # Telas
 │   │   ├── services/            # Lógica de negócio
-│   │   └── widgets/             # Componentes reutilizáveis
+│   │   │   ├── streaming_service.dart  # SSE do backend
+│   │   │   └── api_service.dart        # API + streaming
+│   │   ├── widgets/             # Componentes reutilizáveis
+│   │   │   └── text_input_bar.dart     # Entrada de texto com streaming
 │   ├── android/                 # Configuração Android
 │   └── pubspec.yaml             # Dependências Flutter
 ├── docs/                        # Documentação adicional
+│   ├── SETUP_PROFISSIONAL.md   # Setup completo de desenvolvimento
+│   ├── CORRECAO_ERROS_WEB.md   # Correções de erros web
+│   ├── ERROS_E_PROBLEMAS.md    # Lista de problemas e soluções
+│   └── ...                      # Outros documentos
+├── scripts/                     # Scripts de automação
+│   ├── setup_dev_environment.sh # Configura ambiente profissional
+│   ├── test_playwright.sh      # Testes E2E automatizados
+│   ├── start_server.sh         # Inicia servidor backend
+│   └── ...                      # Outros scripts
+├── PLANO_PROXIMOS_PASSOS.md    # Plano detalhado de próximos passos
+├── GUIA_RAPIDO_DEV.md          # Guia rápido de desenvolvimento
 └── README.md                    # Este arquivo
 ```
 
@@ -244,6 +238,9 @@ john/
 | POST | `/api/process_audio` | Pipeline completo (STT→LLM→TTS) |
 | POST | `/api/transcribe` | Apenas transcrição |
 | POST | `/api/synthesize` | Apenas síntese de voz |
+| GET | `/api/stream_text` | Streaming LLM via SSE |
+| GET | `/api/errors/stats` | Estatísticas de erros |
+| GET | `/api/errors/list` | Listagem de erros |
 | GET | `/api/session/{id}` | Informações da sessão |
 | DELETE | `/api/session/{id}` | Remove sessão |
 
@@ -296,22 +293,138 @@ systemctl --user start ollama
 - Verifique formato do áudio (WAV, 16kHz mono recomendado)
 - Instale dependências de áudio: `sudo apt install libsndfile1`
 
+### Interface Web para Testes
+
+**Acesse a interface web:**
+```bash
+# 1. Inicie o servidor
+./scripts/start_server.sh
+
+# 2. Acesse no navegador
+http://localhost:8000/web/
+
+# Ou use o script
+./scripts/test_web_interface.sh
+```
+
+**Funcionalidades:**
+- ✅ Enviar mensagens de texto
+- ✅ Receber respostas do LLM
+- ✅ Ouvir áudio TTS
+- ✅ Testar memória (salvar/recuperar)
+- ✅ Ver status dos serviços
+- ✅ Logs em tempo real
+
+**Testes Automatizados:**
+```bash
+# Executa 10 testes E2E (100% passando)
+./scripts/test_playwright.sh
+```
+
+### Problemas Conhecidos
+Para lista completa de problemas e soluções, veja:
+- [ERROS_E_PROBLEMAS.md](docs/ERROS_E_PROBLEMAS.md)
+- [CORRECAO_ERROS_WEB.md](docs/CORRECAO_ERROS_WEB.md)
+
+## Funcionalidades Implementadas
+
+### ✅ Backend
+- [x] API REST com FastAPI
+- [x] WebSocket para comunicação em tempo real
+- [x] Speech-to-Text (Whisper/Faster-Whisper)
+- [x] Text-to-Speech (Piper TTS + Edge-TTS fallback)
+- [x] LLM (Ollama local + Groq cloud)
+- [x] **Tool Calling** (Feature 021): Busca web automática
+- [x] Wake Word Detection (OpenWakeWord)
+- [x] Gerenciamento de contexto de conversação
+- [x] Banco de dados SQLite para persistência
+- [x] Sistema de memória (anotações e lembranças)
+- [x] **Métricas de Performance** (Feature 020): Tracking end-to-end
+- [x] Testes automatizados (12 testes Feature 021)
+
+### ✅ Mobile App (Flutter)
+- [x] **Arquitetura Feature-Based** (Fase 3): Organização por domínios
+- [x] **Design System** (Fase 1): Tema centralizado e consistente
+- [x] **Separação de Responsabilidades** (Fase 2): Controllers e Widgets
+- [x] **Testes Automatizados** (Fase 4): 33 testes (Unit, Widget, Integration)
+- [x] Interface de chat
+- [x] Gravação de áudio otimizada
+- [x] **Qualidade de Áudio** (Feature 019): Reprodução completa sem interrupções
+- [x] **Métricas de Performance** (Feature 020): Tracking end-to-end
+- [x] Reprodução de áudio
+- [x] WebSocket para comunicação em tempo real
+- [x] Background service para wake word (Android/iOS)
+- [x] Notificações persistentes
+- [x] Tela de configurações
+- [x] Suporte web (com limitações)
+- [x] Detecção de plataforma
+
+### ✅ Interface Web para Testes
+- [x] Interface web completa (`/web/`)
+- [x] Testes automatizados (Playwright)
+- [x] Envio de mensagens de texto
+- [x] Recebimento de respostas LLM
+- [x] Reprodução de áudio TTS
+- [x] Teste de memória (salvar/recuperar)
+- [x] Logs em tempo real
+- [x] Status dos serviços
+
+### ✅ Ambiente de Desenvolvimento
+- [x] Flutter 3.38.4 (atualizado)
+- [x] Android Studio configurado
+- [x] VS Code com extensões profissionais
+- [x] Playwright para testes E2E
+- [x] Scripts de automação
+- [x] Aliases úteis configurados
+
 ## Roadmap
 
+### ✅ Concluído
 - [x] Backend com API REST
 - [x] WebSocket para tempo real
 - [x] Gerenciamento de contexto
-- [x] Testes básicos
+- [x] Persistência de histórico (SQLite)
+- [x] Sistema de memória com busca semântica
+- [x] Testes automatizados (Backend + Playwright)
 - [x] App mobile Flutter
 - [x] Dual LLM (Ollama + Groq)
+- [x] Wake word detection (OpenWakeWord)
+- [x] Background service
+- [x] Interface web para testes
+- [x] Ambiente de desenvolvimento profissional
 - [x] Documentação completa
-- [ ] Wake word detection (Porcupine)
-- [ ] Persistência de histórico (SQLite)
-- [ ] Interface web de controle
+
+### ✅ Recém Implementado (Dezembro 2025)
+- [x] **Feature 019**: Melhorar Qualidade de Áudio
+  - Timeout dinâmico baseado na duração
+  - Limpeza automática de arquivos temporários
+  - Retry automático em caso de falha
+- [x] **Feature 020**: Otimizar Latência End-to-End
+  - Sistema completo de métricas de performance
+  - Logging de tempos por etapa (STT, LLM, TTS)
+  - Validação de objetivos (< 3s total)
+- [x] **Feature 021**: Tool Calling (Busca Web)
+  - Busca web automática (DuckDuckGo/Tavily)
+  - LLM decide quando buscar informações atualizadas
+  - Integração completa no WebSocket
+
+### 🚧 Em Desenvolvimento
+- [ ] Testes físicos em dispositivo Android (Features 015-020)
+- [ ] Validação de tool calling em produção
+- [ ] Otimizações baseadas em métricas coletadas
+
+### 📋 Planejado
+- [ ] Feature 022: Sistema de Plugins Modular
+- [ ] Mais tools (calculadora, conversão de moedas, etc.)
+- [ ] Cache de buscas recentes
+- [ ] Interface web melhorada
+- [ ] Docker compose completo
+- [ ] CI/CD pipeline
+- [ ] Suporte iOS
 - [ ] Suporte a múltiplos idiomas
 - [ ] Integração smart home
-- [ ] Docker compose completo
-- [ ] Suporte iOS
+
+**Veja plano detalhado:** [PLAN.md](PLAN.md) - Backlog completo de features
 
 ## Contribuindo
 
