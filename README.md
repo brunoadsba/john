@@ -51,7 +51,7 @@ Assistente de voz 100% local e profissional, similar à Alexa, rodando inteirame
 ### 1) Backend
 ```bash
 # Clone
-git clone <seu-repositorio> john
+git clone https://github.com/brunoadsba/john.git
 cd john
 
 # Ambiente virtual
@@ -407,14 +407,25 @@ Para lista completa de problemas e soluções, veja:
   - Busca web automática (DuckDuckGo/Tavily)
   - LLM decide quando buscar informações atualizadas
   - Integração completa no WebSocket
+- [x] **Feature 022**: Sistema de Plugins Modular
+  - PluginManager com registro dinâmico
+  - Plugin de busca web integrado
+  - Arquitetura extensível para novos plugins
+- [x] **Fase 1 - Otimização de Performance** (Concluída)
+  - Streaming LLM via SSE (`/api/stream_text`)
+  - Processamento paralelo (STT/contexto/memória)
+  - Cache inteligente de respostas (semantic search)
+  - Cache e pré-aquecimento de TTS
+  - Script de análise de performance
 
 ### 🚧 Em Desenvolvimento
+- [ ] **Fase 2 - Melhoria de Qualidade TTS**: Avaliar vozes, pós-processamento, dicionário de pronúncia
+- [ ] **Fase 4 - Modernização da Interface**: Design system, chat moderno, animações, temas
 - [ ] Testes físicos em dispositivo Android (Features 015-020)
 - [ ] Validação de tool calling em produção
-- [ ] Otimizações baseadas em métricas coletadas
 
 ### 📋 Planejado
-- [ ] Feature 022: Sistema de Plugins Modular
+- [x] Feature 022: Sistema de Plugins Modular ✅ (implementado)
 - [ ] Mais tools (calculadora, conversão de moedas, etc.)
 - [ ] Cache de buscas recentes
 - [ ] Interface web melhorada
@@ -442,7 +453,9 @@ MIT License - veja LICENSE para detalhes
 
 ## Contato
 
-Para dúvidas e sugestões, abra uma issue no GitHub.
+Para dúvidas e sugestões, abra uma issue no GitHub:
+- **Repositório**: https://github.com/brunoadsba/john
+- **Issues**: https://github.com/brunoadsba/john/issues
 
 ---
 
