@@ -147,6 +147,9 @@ headers.txt
 # Cursor IDE
 .cursor/
 
+# Arquivos locais temporários (não versionados)
+_local/
+
 # Flutter/Mobile
 mobile_app/.metadata
 mobile_app/pubspec.lock
