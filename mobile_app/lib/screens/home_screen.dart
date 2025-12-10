@@ -16,6 +16,7 @@ import '../widgets/listening_waveform.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_handler.dart';
 import '../utils/audio_validator.dart';
+import '../utils/device_compatibility.dart';
 import '../features/home/index.dart' as home;
 import '../features/wake_word/index.dart' as wake_word;
 
@@ -72,6 +73,16 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _initialize();
     _initializeBackgroundService();
+    _checkDeviceCompatibility();
+  }
+  
+  /// Verifica compatibilidade do dispositivo e mostra aviso se necessário
+  Future<void> _checkDeviceCompatibility() async {
+    // Aguarda um frame para garantir que o contexto está disponível
+    await Future.delayed(const Duration(milliseconds: 100));
+    if (mounted) {
+      await DeviceCompatibility.warnUserIfIncompatible(context);
+    }
   }
 
   /// Inicializa controllers

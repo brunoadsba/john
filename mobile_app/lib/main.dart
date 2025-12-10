@@ -11,12 +11,17 @@ import 'services/background_wake_word_service.dart';
 import 'services/error_monitor.dart';
 import 'services/theme_service.dart';
 import 'theme/app_theme.dart';
+import 'utils/device_compatibility.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Inicializa monitoramento global de erros
   ErrorMonitor.initialize();
+  
+  // Verifica compatibilidade do dispositivo e loga
+  final compatibilitySummary = await DeviceCompatibility.getCompatibilitySummary();
+  debugPrint('📱 $compatibilitySummary');
 
   // Inicializa ThemeService e carrega preferência
   final themeService = ThemeService();
