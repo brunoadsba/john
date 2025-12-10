@@ -1,25 +1,28 @@
-# Jonh - Assistente de Voz Local
+# Jonh - Assistente de Voz Inteligente
 
-Assistente de voz 100% local e profissional, similar à Alexa, rodando inteiramente no seu hardware sem dependência de nuvem.
+Assistente de voz profissional, similar à Alexa, com processamento local e opção de cloud para máxima performance.
 
 ## Características
 
-- **100% local**: processamento de IA no seu hardware (Ollama) ou Groq (cloud)
+- **Híbrido Local/Cloud**: STT e TTS 100% local (Whisper + Piper), LLM configurável (Groq cloud padrão ou Ollama local)
 - **Streaming LLM (SSE)**: resposta começa a aparecer em tempo real
-- **Baixa latência**: pipeline otimizado com paralelismo e cache (< 2s alvo)
+- **Baixa latência**: pipeline otimizado com paralelismo e cache (< 3s alvo)
 - **Cache inteligente**: respostas e TTS com pré-aquecimento
 - **Português nativo**: parâmetros ajustados para pt-BR (STT/TTS)
-- **Tool calling**: busca web automática (DuckDuckGo/Tavily)
+- **Tool calling**: busca web automática (DuckDuckGo/Tavily) quando necessário
 - **Monitoramento de performance**: métricas end-to-end e script de análise
+- **Estrutura profissional**: código organizado, documentação completa, testes automatizados
 
 ## Arquitetura
 
 ### Backend (Python/FastAPI)
-- **STT**: faster-whisper ajustado (beam=3, VAD otimizado, cache de modelo)
-- **LLM**: Ollama (local) ou Groq (cloud) com streaming SSE
-  - **Tool calling**: busca web via plugin (DuckDuckGo/Tavily)
-- **TTS**: Piper TTS + cache/pre-warm (edge-tts opcional)
-- **API**: FastAPI com REST + SSE (`/api/stream_text`)
+- **STT**: faster-whisper (large-v3) - **100% local**, roda offline
+- **LLM**: Groq (cloud, padrão) ou Ollama (local, opcional) com streaming SSE
+  - **Padrão**: Groq para máxima velocidade e confiabilidade
+  - **Offline**: Configure `LLM_PROVIDER=ollama` para rodar 100% local
+  - **Tool calling**: busca web via plugin (DuckDuckGo/Tavily) - requer internet
+- **TTS**: Piper TTS + cache/pre-warm - **100% local**, roda offline
+- **API**: FastAPI com REST + WebSocket + SSE (`/api/stream_text`)
 - **Performance**: paralelismo (contexto/memória), caches (resposta/TTS), métricas
 
 ### Mobile App (Flutter)
@@ -44,7 +47,7 @@ Assistente de voz 100% local e profissional, similar à Alexa, rodando inteirame
 - Python 3.10+
 - Flutter 3.35+
 - Android Studio (para desenvolvimento mobile)
-- Ollama instalado e rodando (opcional - pode usar Groq)
+- **Groq API Key** (padrão) ou **Ollama instalado** (para modo offline)
 
 ## Instalação
 
@@ -63,7 +66,9 @@ pip install -r backend/requirements.txt
 
 # Variáveis de ambiente
 cp .env.example .env
-nano .env   # escolha LLM_PROVIDER=groq ou ollama e configure chaves
+nano .env   # Configure:
+            # LLM_PROVIDER=groq (padrão, requer GROQ_API_KEY)
+            # ou LLM_PROVIDER=ollama (offline, requer Ollama instalado)
 ```
 
 Iniciar servidor (expondo para o mobile):
@@ -103,10 +108,12 @@ python3 backend/scripts/analyze_performance.py
 ```
 
 Documentação complementar:
-- [docs/STATUS_PROJETO.md](docs/STATUS_PROJETO.md)
-- [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
-- [docs/MOBILE_APP.md](docs/MOBILE_APP.md)
-- [PLAN.md](PLAN.md)
+- [docs/STATUS_PROJETO.md](docs/STATUS_PROJETO.md) - Status atual e features implementadas
+- [docs/ARQUITETURA.md](docs/ARQUITETURA.md) - Arquitetura técnica completa
+- [docs/MOBILE_APP.md](docs/MOBILE_APP.md) - Guia do app mobile
+- [docs/API.md](docs/API.md) - Documentação da API
+- [docs/INSTALACAO.md](docs/INSTALACAO.md) - Guia de instalação detalhado
+- [QUICKSTART.md](QUICKSTART.md) - Guia rápido de início
 
 ## Uso
 
@@ -175,55 +182,45 @@ python tests/manual_test.py
 
 ```
 john/
-├── backend/
+├── backend/                     # Backend Python/FastAPI
 │   ├── api/
 │   │   ├── main.py              # Aplicação FastAPI principal
 │   │   └── routes/
 │   │       ├── process.py       # Endpoints REST
 │   │       ├── websocket.py     # Endpoints WebSocket
 │   │       └── streaming.py     # SSE /api/stream_text
-│   ├── api/handlers/
-│   │   ├── parallel_processor.py      # Pipeline paralelo (STT/contexto/tools)
-│   │   └── response_cache_handler.py  # Cache inteligente de respostas
 │   ├── services/
-│   │   ├── stt_service.py       # Speech-to-Text (Whisper otimizado)
-│   │   ├── llm/                 # Serviços LLM (Groq/Ollama + streaming)
-│   │   ├── tts_service.py       # Text-to-Speech (Piper + cache)
-│   │   ├── tts_cache.py         # Cache e pré-aquecimento de TTS
-│   │   └── response_cache.py    # Cache semântico de respostas
-│   ├── models/
-│   │   └── schemas.py           # Schemas Pydantic
+│   │   ├── stt_service.py       # Speech-to-Text (Whisper)
+│   │   ├── llm/                 # Serviços LLM (Groq/Ollama)
+│   │   ├── tts_service.py       # Text-to-Speech (Piper)
+│   │   └── ...                   # Outros serviços
 │   ├── config/
 │   │   └── settings.py          # Configurações
-│   ├── tests/
-│   │   ├── test_integration.py  # Testes de integração
-│   │   └── manual_test.py       # Script de teste manual
 │   └── requirements.txt         # Dependências Python
 ├── mobile_app/                  # App Flutter
 │   ├── lib/
 │   │   ├── main.dart            # Entry point
-│   │   ├── models/              # Modelos de dados
-│   │   ├── screens/             # Telas
+│   │   ├── features/            # Arquitetura feature-based
 │   │   ├── services/            # Lógica de negócio
-│   │   │   ├── streaming_service.dart  # SSE do backend
-│   │   │   └── api_service.dart        # API + streaming
-│   │   ├── widgets/             # Componentes reutilizáveis
-│   │   │   └── text_input_bar.dart     # Entrada de texto com streaming
-│   ├── android/                 # Configuração Android
+│   │   └── widgets/             # Componentes reutilizáveis
 │   └── pubspec.yaml             # Dependências Flutter
-├── docs/                        # Documentação adicional
-│   ├── SETUP_PROFISSIONAL.md   # Setup completo de desenvolvimento
-│   ├── CORRECAO_ERROS_WEB.md   # Correções de erros web
-│   ├── ERROS_E_PROBLEMAS.md    # Lista de problemas e soluções
+├── docs/                        # Documentação oficial
+│   ├── STATUS_PROJETO.md        # Status e features
+│   ├── ARQUITETURA.md           # Arquitetura técnica
+│   ├── API.md                   # Documentação da API
 │   └── ...                      # Outros documentos
 ├── scripts/                     # Scripts de automação
-│   ├── setup_dev_environment.sh # Configura ambiente profissional
-│   ├── test_playwright.sh      # Testes E2E automatizados
-│   ├── start_server.sh         # Inicia servidor backend
-│   └── ...                      # Outros scripts
-├── PLANO_PROXIMOS_PASSOS.md    # Plano detalhado de próximos passos
-├── GUIA_RAPIDO_DEV.md          # Guia rápido de desenvolvimento
-└── README.md                    # Este arquivo
+├── models/                      # Modelos de IA (Whisper, Piper)
+├── data/                        # Dados do projeto
+├── _local/                      # Arquivos locais (não versionados)
+│   ├── docs/                    # Documentação interna
+│   ├── scripts/                 # Scripts de teste local
+│   └── temp/                    # Arquivos temporários
+├── README.md                    # Este arquivo
+├── CONTRIBUTING.md              # Guia de contribuição
+├── LICENSE.txt                  # Licença
+├── SECURITY.md                  # Política de segurança
+└── QUICKSTART.md                # Guia rápido
 ```
 
 ## Endpoints da API
@@ -275,14 +272,32 @@ Acesse a documentação interativa em:
 
 ## Troubleshooting
 
-### Ollama não conecta
-```bash
-# Verifique se está rodando
-systemctl --user status ollama
+### Modo Offline (100% Local)
 
-# Inicie se necessário
+Para rodar completamente offline:
+
+1. **Instalar Ollama:**
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama pull llama3:8b-instruct-q4_0
+```
+
+2. **Configurar .env:**
+```bash
+LLM_PROVIDER=ollama
+WEB_SEARCH_ENABLED=false
+```
+
+3. **Verificar Ollama:**
+```bash
+systemctl --user status ollama
+# Se não estiver rodando:
 systemctl --user start ollama
 ```
+
+### Groq não conecta
+- Verifique se `GROQ_API_KEY` está configurada no `.env`
+- Teste a chave: `curl https://api.groq.com/openai/v1/models -H "Authorization: Bearer $GROQ_API_KEY"`
 
 ### Erro de memória
 - Reduza o tamanho do modelo Whisper (use 'tiny' ou 'base')
@@ -333,7 +348,7 @@ Para lista completa de problemas e soluções, veja:
 - [x] WebSocket para comunicação em tempo real
 - [x] Speech-to-Text (Whisper/Faster-Whisper)
 - [x] Text-to-Speech (Piper TTS + Edge-TTS fallback)
-- [x] LLM (Ollama local + Groq cloud)
+- [x] LLM (Groq cloud padrão + Ollama local opcional)
 - [x] **Tool Calling** (Feature 021): Busca web automática
 - [x] Wake Word Detection (OpenWakeWord)
 - [x] Gerenciamento de contexto de conversação
@@ -435,7 +450,23 @@ Para lista completa de problemas e soluções, veja:
 - [ ] Suporte a múltiplos idiomas
 - [ ] Integração smart home
 
-**Veja plano detalhado:** [PLAN.md](PLAN.md) - Backlog completo de features
+**Nota:** Documentos de planejamento interno estão em `_local/docs/` (não versionados)
+
+## Modo Offline vs Cloud
+
+### Configuração Padrão (Cloud)
+- **LLM**: Groq (requer internet e API key)
+- **STT**: Whisper local (offline)
+- **TTS**: Piper local (offline)
+- **Busca Web**: Habilitada (requer internet)
+
+### Modo 100% Offline
+- **LLM**: Ollama local (sem internet)
+- **STT**: Whisper local (offline)
+- **TTS**: Piper local (offline)
+- **Busca Web**: Desabilitada
+
+**Para ativar modo offline:** Configure `LLM_PROVIDER=ollama` e `WEB_SEARCH_ENABLED=false` no `.env`
 
 ## Contribuindo
 
@@ -446,6 +477,8 @@ Contribuições são bem-vindas! Por favor:
 3. Commit suas mudanças
 4. Push para a branch
 5. Abra um Pull Request
+
+Veja [CONTRIBUTING.md](CONTRIBUTING.md) para mais detalhes.
 
 ## Licença
 
