@@ -52,12 +52,25 @@ class MessageHandler {
             final confidence = json['confidence'] as double? ?? 0.0;
             debugPrint('📝 Transcrição: "$text" (confiança: ${confidence.toStringAsFixed(2)})');
             if (text.isNotEmpty) {
-              _addMessage(Message(
-                id: 'transcription_${DateTime.now().millisecondsSinceEpoch}',
-                type: MessageType.user,
-                content: text,
-                timestamp: DateTime.now(),
-              ));
+              // Atualiza mensagem do usuário mais recente com status "sent"
+              final lastUserMessage = _messages.lastWhere(
+                (m) => m.type == MessageType.user && m.status == MessageStatus.sending,
+                orElse: () => _messages.last,
+              );
+              if (lastUserMessage.status == MessageStatus.sending) {
+                updateMessageStatus(lastUserMessage.id, MessageStatus.sent);
+              }
+              
+              // Se o texto da transcrição for diferente, cria nova mensagem
+              if (lastUserMessage.content != text) {
+                _addMessage(Message(
+                  id: 'transcription_${DateTime.now().millisecondsSinceEpoch}',
+                  type: MessageType.user,
+                  content: text,
+                  timestamp: DateTime.now(),
+                  status: MessageStatus.sent,
+                ));
+              }
             }
             break;
 
@@ -150,14 +163,23 @@ class MessageHandler {
     ));
   }
 
-  /// Adiciona mensagem do usuário
-  void addUserMessage(String text) {
+  /// Adiciona mensagem do usuário (Optimistic UI)
+  void addUserMessage(String text, {MessageStatus status = MessageStatus.sending}) {
     _addMessage(Message(
       id: 'user_${DateTime.now().millisecondsSinceEpoch}',
       type: MessageType.user,
       content: text,
       timestamp: DateTime.now(),
+      status: status,
     ));
+  }
+  
+  /// Atualiza status de uma mensagem
+  void updateMessageStatus(String messageId, MessageStatus status) {
+    final index = _messages.indexWhere((m) => m.id == messageId);
+    if (index != -1) {
+      _messages[index] = _messages[index].copyWith(status: status);
+    }
   }
 
   /// Processa token de streaming

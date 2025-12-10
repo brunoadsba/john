@@ -172,14 +172,30 @@ class ModernChatBubble extends StatelessWidget {
   }
 
   Widget _buildStatusIndicator(Color color) {
-    // Indicador de status WhatsApp (✓✓)
-    return Icon(
-      Icons.done_all,
-      size: 16,
-      color: message.isProcessing
-          ? color
-          : AppTheme.readStatusBlue, // Azul quando lido
-    );
+    // Indicador de status baseado em MessageStatus
+    switch (message.status) {
+      case MessageStatus.sending:
+        return SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        );
+      case MessageStatus.error:
+        return Icon(
+          Icons.error_outline,
+          size: 16,
+          color: Colors.red,
+        );
+      case MessageStatus.sent:
+        return Icon(
+          Icons.done_all,
+          size: 16,
+          color: AppTheme.readStatusBlue,
+        );
+    }
   }
 
   String _formatTimestamp(DateTime timestamp) {

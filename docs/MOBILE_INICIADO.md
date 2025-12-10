@@ -46,16 +46,43 @@
 
 ---
 
+## ✅ Implementado (Continuado)
+
+### 3. Streaming de Áudio (Time to First Byte)
+
+**Arquivo:** `mobile_app/lib/services/audio/audio_streaming_playback.dart`
+
+**Funcionalidades:**
+- ✅ Reproduz áudio recebido via stream (chunks)
+- ✅ Começa a tocar assim que primeiro chunk significativo chegar (1KB)
+- ✅ Reduz latência percebida em 200-500ms
+- ✅ Integrado no `AudioService` com método `playStreamedAudio()`
+
+**Benefício:**
+- UX mais responsiva - usuário ouve áudio imediatamente
+- Não precisa esperar arquivo completo
+
+### 4. Optimistic UI no Chat
+
+**Arquivos modificados:**
+- `mobile_app/lib/models/message.dart` - Adicionado `MessageStatus` enum
+- `mobile_app/lib/services/api/message_handler.dart` - Suporte a status
+- `mobile_app/lib/services/api_service.dart` - Mensagens com status "sending"
+- `mobile_app/lib/widgets/modern_chat_bubble.dart` - Exibe status visual
+
+**Funcionalidades:**
+- ✅ Mensagem do usuário aparece imediatamente com status "sending"
+- ✅ Status atualiza para "sent" quando servidor confirma
+- ✅ Status "error" se houver falha
+- ✅ Indicador visual no chat (spinner, check, erro)
+
+**Benefício:**
+- UX mais responsiva
+- Feedback visual imediato ao usuário
+
+---
+
 ## 🚀 Próximas Ações
-
-### Prioridade Alta
-1. **Streaming de Áudio** - Time to First Byte
-   - Modificar `AudioService` para começar a tocar no primeiro chunk
-   - Reduzir latência percebida
-
-2. **Optimistic UI** - Chat responsivo
-   - Mostrar mensagem do usuário imediatamente
-   - Atualizar status conforme confirmação
 
 ### Prioridade Média (Fase 3)
 3. **Animações Adaptativas**

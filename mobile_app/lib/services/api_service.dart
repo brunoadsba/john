@@ -133,8 +133,8 @@ class ApiService extends ChangeNotifier {
     try {
       metrics.markAudioSent();
       
-      // Adiciona mensagem do usuário imediatamente (feedback visual)
-      _messageHandler.addUserMessage("🎤 Áudio enviado...");
+      // Adiciona mensagem do usuário imediatamente (Optimistic UI)
+      _messageHandler.addUserMessage("🎤 Áudio enviado...", status: MessageStatus.sending);
       notifyListeners();
       
       _wsClient.send(Uint8List.fromList(audioBytes));
