@@ -185,6 +185,11 @@ backend/services/tts/
 # Scripts (todos os scripts são locais/desenvolvimento)
 scripts/
 
+# Documentação específica (manter local)
+docs/Integracao-laticeAI.md
+docs/README.md
+mobile_app/GERAR_APK.md
+
 # Documentação interna em docs/ (exceto principais)
 docs/ANALISE_*.md
 docs/AVALIACAO_*.md
