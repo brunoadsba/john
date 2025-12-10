@@ -140,3 +140,88 @@ training_*.md
 
 # Headers e arquivos temporários
 headers.txt
+
+# Ambiente virtual na raiz
+.venv/
+
+# Cursor IDE
+.cursor/
+
+# Flutter/Mobile
+mobile_app/.metadata
+mobile_app/pubspec.lock
+mobile_app/platform-tools/
+mobile_app/test/
+mobile_app/web/favicon.png
+mobile_app/web/icons/
+mobile_app/web/manifest.json
+
+# Dados e cache do backend
+backend/data/
+backend/test_*.py
+backend/diagnostico_*.py
+backend/requirements-essential.txt
+backend/requirements-optional.txt
+backend/=*
+
+# Assets temporários (se não forem necessários no repositório)
+assets/
+
+# Documentação interna temporária
+Doc/
+FUTURO.md
+PLANO_ACAO_*.md
+
+# Evolução de prompts (temporário)
+evo/
+
+# Arquivos de teste e análise temporários
+backend/tests/test_piper_*.py
+backend/tests/test_tts_*.py
+backend/services/tts_cache_analyzer.py
+backend/services/response_sanitizer.py
+backend/services/tts/
+
+# Scripts (todos os scripts são locais/desenvolvimento)
+scripts/
+
+# Documentação interna em docs/ (exceto principais)
+docs/ANALISE_*.md
+docs/AVALIACAO_*.md
+docs/CLUSTERING_*.md
+docs/CONFIGURACAO_*.md
+docs/CONFIGURACOES_*.md
+docs/CORRECAO_*.md
+docs/DEBUG*.md
+docs/DETECCAO_*.md
+docs/FASE*.md
+docs/IMPLEMENTACAO_*.md
+docs/INSTALAR_*.md
+docs/INTEGRACAO_*.md
+docs/MELHORIAS_*.md
+docs/MIGRACAO_*.md
+docs/ML_*.md
+docs/MONITORAMENTO_*.md
+docs/OTIMIZACOES_*.md
+docs/PLANO_*.md
+docs/PLUGIN_*.md
+docs/PROBLEMA*.md
+docs/PROMPT_*.md
+docs/RATE_*.md
+docs/RECOMENDACAO_*.md
+docs/REFATORACAO_*.md
+docs/REINICIAR_*.md
+docs/RESUMO_*.md
+docs/RLHF_*.md
+docs/SOLUCAO_*.md
+docs/STATUS_*.md
+docs/SUCESSO_*.md
+docs/TESTE*.md
+docs/TESTES_*.md
+docs/WSL2_*.md
+docs/analise_*.md
+docs/fase*.md
+docs/plano_*.md
+docs/proposta-*.md
+docs/solucao*.md
+docs/util.md
