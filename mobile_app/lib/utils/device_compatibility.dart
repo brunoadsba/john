@@ -50,8 +50,8 @@ Compatibilidade do Dispositivo:
 
 /// Utilitário para verificar compatibilidade do dispositivo
 class DeviceCompatibility {
-  static const int MIN_API_LEVEL = 26; // Android 8.0
-  static const double MIN_MEMORY_MB = 512.0;
+  static const int minApiLevel = 26; // Android 8.0
+  static const double minMemoryMb = 512.0;
   
   /// Verifica compatibilidade do dispositivo
   static Future<CompatibilityReport> checkCompatibility() async {
@@ -69,7 +69,7 @@ class DeviceCompatibility {
       
       // API Level
       report.apiLevel = androidInfo.version.sdkInt;
-      report.isSupported = report.apiLevel! >= MIN_API_LEVEL;
+      report.isSupported = report.apiLevel! >= minApiLevel;
       
       // Informações do dispositivo
       report.deviceModel = androidInfo.model;

@@ -1,7 +1,6 @@
 /// Serviço de gravação e reprodução de áudio
 /// Orquestra os serviços de gravação, reprodução e streaming
 import 'package:flutter/foundation.dart';
-import 'dart:typed_data';
 
 import 'audio/audio_recording.dart';
 import 'audio/audio_playback.dart';

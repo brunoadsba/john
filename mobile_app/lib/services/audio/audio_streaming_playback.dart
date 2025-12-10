@@ -3,7 +3,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:typed_data';
 import 'dart:io';
 import 'dart:async';
 import 'dart:io' as io;
@@ -21,7 +20,7 @@ class AudioStreamingPlayback {
   /// Reproduz áudio recebido via stream (chunks)
   /// Começa a tocar assim que primeiro chunk significativo chegar
   Future<void> playStreamedAudio(Stream<Uint8List> audioStream) async {
-    Completer<void>? playbackCompleter;
+    final playbackCompleter = Completer<void>();
     StreamSubscription? streamSubscription;
     StreamSubscription? playerStateSubscription;
 
@@ -36,13 +35,11 @@ class AudioStreamingPlayback {
           '$tempPath/audio_stream_${DateTime.now().millisecondsSinceEpoch}.wav');
       _fileSink = _tempFile!.openWrite();
 
-      playbackCompleter = Completer<void>();
-
       // Monitora estado do player
       playerStateSubscription = _player.playerStateStream.listen((state) {
         if (state.processingState == ProcessingState.completed) {
-          if (!playbackCompleter!.isCompleted) {
-            playbackCompleter!.complete();
+          if (!playbackCompleter.isCompleted) {
+            playbackCompleter.complete();
             debugPrint('✅ Reprodução via streaming concluída');
           }
         }
@@ -53,8 +50,11 @@ class AudioStreamingPlayback {
         (chunk) async {
           try {
             // Escreve chunk no arquivo
-            _fileSink!.add(chunk);
-            await _fileSink!.flush();
+            final sink = _fileSink;
+            if (sink != null) {
+              sink.add(chunk);
+              await sink.flush();
+            }
 
             // Começa a tocar quando primeiro chunk significativo chegar
             if (!_hasStartedPlaying && chunk.length >= _minChunkSize) {
@@ -65,15 +65,17 @@ class AudioStreamingPlayback {
             }
           } catch (e) {
             debugPrint('❌ Erro ao processar chunk: $e');
-            if (!playbackCompleter!.isCompleted) {
-              playbackCompleter!.completeError(e);
+            if (!playbackCompleter.isCompleted) {
+              playbackCompleter.completeError(e);
             }
           }
         },
         onDone: () async {
           try {
-            await _fileSink!.close();
-            _fileSink = null;
+            if (_fileSink != null) {
+              await _fileSink!.close();
+              _fileSink = null;
+            }
 
             // Se ainda não começou a tocar, começa agora
             if (!_hasStartedPlaying) {
@@ -83,7 +85,7 @@ class AudioStreamingPlayback {
 
             // Aguarda reprodução terminar (com timeout)
             if (_hasStartedPlaying) {
-              await playbackCompleter!.future.timeout(
+              await playbackCompleter.future.timeout(
                 const Duration(seconds: 60),
                 onTimeout: () {
                   debugPrint('⏱️ Timeout de reprodução via streaming');
@@ -91,24 +93,24 @@ class AudioStreamingPlayback {
                 },
               );
             } else {
-              playbackCompleter!.complete();
+              playbackCompleter.complete();
             }
           } catch (e) {
-            if (!playbackCompleter!.isCompleted) {
-              playbackCompleter!.completeError(e);
+            if (!playbackCompleter.isCompleted) {
+              playbackCompleter.completeError(e);
             }
           }
         },
         onError: (error) {
           debugPrint('❌ Erro no stream de áudio: $error');
-          if (!playbackCompleter!.isCompleted) {
-            playbackCompleter!.completeError(error);
+          if (!playbackCompleter.isCompleted) {
+            playbackCompleter.completeError(error);
           }
         },
         cancelOnError: false,
       );
 
-      await playbackCompleter!.future;
+      await playbackCompleter.future;
     } catch (e, stackTrace) {
       debugPrint('❌ Erro ao reproduzir áudio via streaming: $e');
       debugPrint('   Stack trace: $stackTrace');
