@@ -170,6 +170,7 @@ assets/
 # Documentação interna temporária
 Doc/
 FUTURO.md
+PLAN.md
 PLANO_ACAO_*.md
 
 # Evolução de prompts (temporário)
