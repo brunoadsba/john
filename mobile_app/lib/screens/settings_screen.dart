@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/wake_word_backend_service.dart';
 import '../services/api_service.dart';
+import '../services/audio_service.dart';
+import '../services/theme_service.dart';
 import '../config/env.dart';
+import '../widgets/status_bar.dart';
+import '../utils/error_handler.dart';
 
 /// Tela de configurações do app
 class SettingsScreen extends StatefulWidget {
@@ -201,6 +205,146 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         );
                       },
                     ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Seção Ações Rápidas
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Ações Rápidas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Toggle de tema
+                    Consumer<ThemeService>(
+                      builder: (context, themeService, _) {
+                        final isDark = themeService.isDarkMode;
+                        return ListTile(
+                          leading: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+                          title: Text(isDark ? 'Tema Claro' : 'Tema Escuro'),
+                          subtitle: const Text('Alternar entre tema claro e escuro'),
+                          trailing: Switch(
+                            value: isDark,
+                            onChanged: (_) => themeService.toggleTheme(),
+                          ),
+                          onTap: () => themeService.toggleTheme(),
+                        );
+                      },
+                    ),
+                    const Divider(),
+                    // Botão de atualizar/reconectar
+                    Consumer<ApiService>(
+                      builder: (context, apiService, _) {
+                        return ListTile(
+                          leading: const Icon(Icons.refresh),
+                          title: const Text('Atualizar e Reconectar'),
+                          subtitle: const Text('Reconecta todos os serviços'),
+                          onTap: () async {
+                            try {
+                              ErrorHandler.showInfo(context, 'Atualizando e reconectando...');
+                              apiService.disconnect();
+                              await apiService.connect();
+                              if (mounted) {
+                                ErrorHandler.showSuccess(
+                                  context,
+                                  'App atualizado e reconectado com sucesso!',
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ErrorHandler.showError(
+                                  context,
+                                  ErrorHandler.getErrorMessage(e),
+                                );
+                              }
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    const Divider(),
+                    // Botão de conexão
+                    Consumer<ApiService>(
+                      builder: (context, apiService, _) {
+                        return ListTile(
+                          leading: Icon(
+                            apiService.isConnected
+                                ? Icons.cloud_done
+                                : Icons.cloud_off,
+                            color: apiService.isConnected
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                          title: Text(
+                            apiService.isConnected ? 'Desconectar' : 'Conectar',
+                          ),
+                          subtitle: Text(
+                            apiService.isConnected
+                                ? 'Desconectar do servidor'
+                                : 'Conectar ao servidor',
+                          ),
+                          onTap: () async {
+                            if (apiService.isConnected) {
+                              apiService.disconnect();
+                              if (mounted) {
+                                ErrorHandler.showInfo(context, 'Desconectado');
+                              }
+                            } else {
+                              try {
+                                ErrorHandler.showInfo(context, 'Conectando...');
+                                await apiService.connect();
+                                if (mounted) {
+                                  ErrorHandler.showSuccess(context, 'Conectado!');
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ErrorHandler.showConnectionError(
+                                    context,
+                                    onRetry: () => apiService.connect(),
+                                  );
+                                }
+                              }
+                            }
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Seção Status Técnico (StatusBar)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Status Técnico',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Status dos serviços do sistema:',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                    const SizedBox(height: 16),
+                    const StatusBar(),
                   ],
                 ),
               ),

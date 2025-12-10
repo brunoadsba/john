@@ -87,10 +87,8 @@ async def initialize_all_services(
             finetuned_model=finetuned_model
         )
     
-    # 3. TTS Service (com cache habilitado)
+    # 3. TTS Service (Fase 2 - com processadores profissionais)
     tts_service = PiperTTSService(
-        voice=settings.piper_voice,
-        model_path=settings.piper_model_path,
         enable_cache=True,
         cache_size=100,
         cache_ttl=3600
@@ -99,9 +97,17 @@ async def initialize_all_services(
     # Pré-aquece TTS (carrega modelo e cacheia respostas comuns)
     logger.info("Pré-aquecendo TTS...")
     try:
-        await tts_service.synthesize("Olá")
-        await tts_service.synthesize("Como posso ajudar?")
-        logger.info("✅ TTS pré-aquecido com sucesso")
+        from backend.services.tts_cache_analyzer import TTSCacheAnalyzer
+        analyzer = TTSCacheAnalyzer()
+        prewarm_phrases = analyzer.get_prewarm_phrases(limit=15)
+        
+        for phrase in prewarm_phrases:
+            try:
+                await tts_service.synthesize(phrase)
+            except Exception as e:
+                logger.debug(f"Erro ao pré-aquecer frase '{phrase[:30]}...': {e}")
+        
+        logger.info(f"✅ TTS pré-aquecido com {len(prewarm_phrases)} frases")
     except Exception as e:
         logger.warning(f"Erro ao pré-aquecer TTS: {e}")
     

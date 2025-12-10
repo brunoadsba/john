@@ -39,7 +39,7 @@ class MessageHandler {
         switch (type) {
           case 'connected':
             debugPrint('✅ Conectado ao assistente');
-            _addSystemMessage('Conectado ao assistente Jonh');
+            // Mensagem de conexão removida - não deve aparecer na tela
             break;
 
           case 'session_started':

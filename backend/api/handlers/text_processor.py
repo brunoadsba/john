@@ -22,6 +22,7 @@ from backend.api.handlers.response_cache_handler import (
     get_cached_response,
     set_cached_response
 )
+from backend.services.response_sanitizer import get_sanitizer
 
 
 async def process_text_complete(
@@ -193,6 +194,21 @@ async def process_text_complete(
         reward_model_service=reward_model_service,
         rlhf_service=rlhf_service
     )
+    
+    # 2.5. Sanitiza resposta (remove tokens de treinamento, números excessivos, etc)
+    sanitizer = get_sanitizer()
+    resposta_texto_original = resposta_texto
+    resposta_texto = sanitizer.sanitize(resposta_texto)
+    
+    # Verifica qualidade após sanitização
+    if not sanitizer.is_quality_response(resposta_texto):
+        logger.warning(f"⚠️ Resposta de baixa qualidade após sanitização. Original: '{resposta_texto_original[:100]}...'")
+        # Se ficou muito ruim, usa mensagem de contingência
+        if len(resposta_texto.strip()) < 20:
+            resposta_texto = "Desculpe, tive um probleminha técnico. Pode repetir a pergunta?"
+    
+    if resposta_texto != resposta_texto_original:
+        logger.info(f"🔧 Resposta sanitizada: '{resposta_texto_original[:50]}...' -> '{resposta_texto[:50]}...'")
     
     # Salva memórias em paralelo (não bloqueia resposta)
     await save_memories_parallel(

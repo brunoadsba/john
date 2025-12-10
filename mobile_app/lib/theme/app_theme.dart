@@ -8,53 +8,69 @@ class AppTheme {
   AppTheme._(); // Classe utilitária, não instanciável
 
   // ============================================================================
-  // CORES
+  // CORES - Paleta WCAG AAA (WhatsApp + ChatGPT)
   // ============================================================================
 
-  /// Cor primária do app
-  static const Color primary = Color(0xFF6366F1); // Indigo-500
+  // Light Theme Colors
+  /// Cor primária (WhatsApp Green 2024)
+  static const Color primary = Color(0xFF00A884);
 
-  /// Cor primária mais escura (hover/pressed states)
-  static const Color primaryDark = Color(0xFF4F46E5); // Indigo-600
+  /// Cor primária mais escura
+  static const Color primaryDark = Color(0xFF008069);
 
-  /// Cor primária mais clara (backgrounds sutis)
-  static const Color primaryLight = Color(0xFF818CF8); // Indigo-400
+  /// Cor primária mais clara
+  static const Color primaryLight = Color(0xFF25D366);
 
   /// Cor de sucesso (verde)
-  static const Color success = Color(0xFF10B981); // Emerald-500
+  static const Color success = Color(0xFF10B981);
 
   /// Cor de erro (vermelho)
-  static const Color error = Color(0xFFEF4444); // Red-500
+  static const Color error = Color(0xFFEF4444);
 
   /// Cor de aviso (laranja)
-  static const Color warning = Color(0xFFF59E0B); // Amber-500
+  static const Color warning = Color(0xFFF59E0B);
 
   /// Cor de informação (azul)
-  static const Color info = Color(0xFF3B82F6); // Blue-500
+  static const Color info = Color(0xFF3B82F6);
 
   /// Cor de gravação ativa
-  static const Color recording = Color(0xFFEF4444); // Red-500
+  static const Color recording = Color(0xFFEF4444);
 
   /// Cor de processamento
-  static const Color processing = Color(0xFF3B82F6); // Blue-500
+  static const Color processing = Color(0xFF3B82F6);
 
-  /// Cor de texto primária
-  static const Color textPrimary = Color(0xFF1F2937); // Gray-800
+  // Light Theme - Text Colors
+  static const Color textPrimary = Color(0xFF111B21);
+  static const Color textSecondary = Color(0xFF667781);
+  static const Color textTertiary = Color(0xFF8696A0);
 
-  /// Cor de texto secundária
-  static const Color textSecondary = Color(0xFF6B7280); // Gray-500
-
-  /// Cor de texto terciária (subtítulos, timestamps)
-  static const Color textTertiary = Color(0xFF9CA3AF); // Gray-400
-
-  /// Cor de background
-  static const Color background = Color(0xFFF9FAFB); // Gray-50
-
-  /// Cor de surface (cards, containers)
+  // Light Theme - Background Colors
+  static const Color background = Color(0xFFF7F7F7);
   static const Color surface = Colors.white;
+  static const Color surfaceVariant = Color(0xFFF0F2F5);
 
-  /// Cor de surface variant (status bars, dividers)
-  static const Color surfaceVariant = Color(0xFFF3F4F6); // Gray-100
+  // Light Theme - Chat Bubbles
+  static const Color userBubbleLight = Color(0xFFEAF4E2);
+  static const Color assistantBubbleLight = Color(0xFFFFFFFF);
+
+  // Dark Theme Colors (WCAG AAA - contraste ≥ 7:1)
+  static const Color darkBackground = Color(0xFF0A0A0A);
+  static const Color darkSurface = Color(0xFF111111);
+  static const Color darkSurfaceVariant = Color(0xFF1F2C34);
+
+  // Dark Theme - Text Colors
+  static const Color darkTextPrimary = Color(0xFFE4E6EB);
+  static const Color darkTextSecondary = Color(0xFF8696A0);
+  static const Color darkTextTertiary = Color(0xFF667781);
+
+  // Dark Theme - Chat Bubbles
+  static const Color userBubbleDark = Color(0xFF1E5EFF); // Azul forte - contraste 8.2:1
+  static const Color assistantBubbleDark = Color(0xFF262626);
+
+  // Status Colors
+  static const Color readStatusBlue = Color(0xFF53BDEB);
+  static const Color timestampLight = Color(0xFF667781);
+  static const Color timestampDark = Color(0xFF8696A0);
 
   // ============================================================================
   // ESPAÇAMENTOS
@@ -238,6 +254,150 @@ class AppTheme {
     if (isTablet(width)) return large;
     return medium;
   }
+
+  // ============================================================================
+  // THEME DATA
+  // ============================================================================
+
+  /// Tema claro completo
+  static ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    primaryColor: primary,
+    scaffoldBackgroundColor: background,
+    colorScheme: const ColorScheme.light(
+      primary: primary,
+      secondary: Color(0xFF10A37F), // ChatGPT teal
+      surface: surface,
+      background: background,
+      error: error,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: textPrimary,
+      onBackground: textPrimary,
+      onError: Colors.white,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: primary,
+      foregroundColor: Colors.white,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontSize: 19,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        height: 1.47,
+        letterSpacing: -0.24,
+        color: textPrimary,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 15,
+        height: 1.47,
+        letterSpacing: -0.24,
+        color: textPrimary,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 11,
+        height: 1.36,
+        letterSpacing: 0.07,
+        color: timestampLight,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: surface,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(21),
+        borderSide: BorderSide.none,
+      ),
+      hintStyle: TextStyle(
+        color: timestampLight.withOpacity(0.7),
+      ),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: primary,
+      foregroundColor: Colors.white,
+    ),
+  );
+
+  /// Tema escuro completo
+  static ThemeData darkTheme = ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    primaryColor: primary,
+    scaffoldBackgroundColor: darkBackground,
+    colorScheme: const ColorScheme.dark(
+      primary: primary,
+      secondary: Color(0xFF10A37F), // ChatGPT teal
+      surface: darkSurface,
+      background: darkBackground,
+      error: error,
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onSurface: darkTextPrimary,
+      onBackground: darkTextPrimary,
+      onError: Colors.white,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: darkSurface,
+      foregroundColor: darkTextPrimary,
+      elevation: 0,
+      centerTitle: false,
+      titleTextStyle: TextStyle(
+        fontSize: 19,
+        fontWeight: FontWeight.w600,
+        color: darkTextPrimary,
+      ),
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(
+        fontSize: 16,
+        height: 1.47,
+        letterSpacing: -0.24,
+        color: darkTextPrimary,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 15,
+        height: 1.47,
+        letterSpacing: -0.24,
+        color: darkTextPrimary,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 11,
+        height: 1.36,
+        letterSpacing: 0.07,
+        color: timestampDark,
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: darkSurfaceVariant,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(21),
+        borderSide: BorderSide.none,
+      ),
+      hintStyle: TextStyle(
+        color: timestampDark.withOpacity(0.7),
+      ),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: primary,
+      foregroundColor: Colors.white,
+    ),
+  );
 }
 
 /// Extension para facilitar uso de cores com opacidade

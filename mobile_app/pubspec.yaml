@@ -12,6 +12,7 @@ dependencies:
   
   # UI
   cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.10+1
   
   # Audio
   record: ^6.0.0
@@ -24,6 +25,9 @@ dependencies:
   
   # State Management
   provider: ^6.1.1
+  
+  # Links externos / abrir URLs com alerta
+  url_launcher: ^6.3.0
   
   # Wake Word (Porcupine)
   porcupine_flutter: ^3.0.0
@@ -48,4 +52,6 @@ flutter:
   
   assets:
     - assets/wake_words/
+    - assets/icons/Logo.jpeg
+    - assets/icons/logo sem backgrounf.jpeg
 

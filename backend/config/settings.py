@@ -53,7 +53,17 @@ class Settings(BaseSettings):
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
     
-    # Piper TTS
+    # Piper TTS (Fase 2 - Nova geração)
+    tts_engine: str = "piper"  # "piper" ou "edge" (fallback)
+    tts_model_path: str = "models/tts/pt_BR-jeff-medium.onnx"
+    tts_config_path: Optional[str] = "models/tts/pt_BR-jeff-medium.onnx.json"
+    tts_use_cuda: bool = False  # CPU por padrão (Galaxy Book 2)
+    tts_pronunciation_dict_path: str = "backend/data/tts_pronunciation_dict.json"
+    tts_enable_ssml: bool = True
+    tts_enable_numbers: bool = True
+    tts_enable_dates: bool = True
+    
+    # Piper TTS (legado - manter para compatibilidade)
     piper_voice: str = "pt_BR-faber-medium"
     piper_model_path: str = "./models/piper"
     

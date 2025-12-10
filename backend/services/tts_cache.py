@@ -3,7 +3,7 @@ Cache para sínteses TTS frequentes
 Reduz latência para respostas comuns
 """
 import hashlib
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from pathlib import Path
 import json
 from loguru import logger
@@ -95,4 +95,19 @@ class TTSCache:
             "ttl": self.ttl,
             "current_size": len(self.cache)
         }
+    
+    def prewarm(self, phrases: List[str]):
+        """
+        Pré-aquece cache com lista de frases
+        
+        Args:
+            phrases: Lista de frases para pré-cache
+        """
+        if not self.cache:
+            logger.warning("Cache não disponível para pré-aquecimento")
+            return
+        
+        logger.info(f"Pré-aquecendo cache com {len(phrases)} frases...")
+        # Nota: Pré-aquecimento real requer síntese, então isso é apenas preparação
+        # O pré-aquecimento real deve ser feito chamando synthesize() para cada frase
 

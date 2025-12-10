@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
@@ -8,10 +10,9 @@ import '../services/wake_word_backend_service.dart';
 import '../services/audio_stream_service.dart';
 import '../services/background_wake_word_service.dart';
 import '../widgets/message_list.dart';
-import '../widgets/voice_button.dart';
 import '../widgets/text_input_bar.dart';
-import '../widgets/status_bar.dart';
 import '../widgets/app_bar_actions.dart';
+import '../widgets/listening_waveform.dart';
 import '../theme/app_theme.dart';
 import '../utils/error_handler.dart';
 import '../utils/audio_validator.dart';
@@ -29,6 +30,37 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   // Flag para controlar se áudio está sendo reproduzido
   bool _isPlayingAudio = false;
+
+  // #region agent log helper
+  void _logDebug({
+    required String location,
+    required String message,
+    required String hypothesisId,
+    Map<String, dynamic>? data,
+    String runId = 'pre-fix',
+  }) {
+    const sessionId = 'debug-session';
+    const logPath = '/home/brunoadsba/john/.cursor/debug.log';
+    final entry = {
+      'sessionId': sessionId,
+      'runId': runId,
+      'hypothesisId': hypothesisId,
+      'location': location,
+      'message': message,
+      'data': data ?? {},
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
+    };
+    try {
+      File(logPath).writeAsStringSync(
+        jsonEncode(entry) + '\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+    } catch (_) {
+      // silencioso para não quebrar UI
+    }
+  }
+  // #endregion
 
   // Controllers
   late home.HomeController _homeController;
@@ -131,45 +163,151 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Jonh Assistant'),
+        title: Row(
+          children: [
+            // Avatar do assistente com logo fornecido
+            Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: AssetImage('assets/icons/logo sem backgrounf.jpeg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Nome completo + status
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'John',
+                    style: TextStyle(fontSize: 18),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Consumer<ApiService>(
+                    builder: (context, apiService, _) {
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            apiService.isConnected
+                                ? Icons.circle
+                                : Icons.circle_outlined,
+                            size: 10,
+                            color: apiService.isConnected
+                                ? Colors.lightGreenAccent
+                                : Colors.orangeAccent,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            apiService.isConnected ? 'Online' : 'Reconectando',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: apiService.isConnected
+                                  ? Colors.green
+                                  : Colors.grey,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
         centerTitle: false,
-        actions: [
-          AppBarActions(
-            onRefresh: () => _refreshApp(context),
-          ),
+        actions: const [
+          AppBarActions(),
         ],
       ),
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // Status bar - responsivo
-            const StatusBar(),
+            Column(
+              children: [
+                // Lista de mensagens (StatusBar removido - agora em Settings)
+                const Expanded(
+                  child: MessageList(),
+                ),
 
-            // Lista de mensagens
-            const Expanded(
-              child: MessageList(),
+                // Barra de input de texto (com streaming e microfone)
+                const TextInputBar(),
+              ],
             ),
+            // Ondas sonoras durante gravação (sobrepõe o conteúdo)
+            Consumer<AudioService>(
+              builder: (context, audioService, _) {
+                final theme = Theme.of(context);
+                final api = context.read<ApiService>();
 
-            // Barra de input de texto (com streaming)
-            const TextInputBar(),
-
-            // Botão de voz - responsivo
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppTheme.responsiveSpacing(
-                  screenWidth,
-                  small: AppTheme.spacingM,
-                  medium: AppTheme.spacingM,
-                  large: AppTheme.spacingXL,
-                ),
-                vertical: AppTheme.responsiveSpacing(
-                  screenWidth,
-                  small: AppTheme.spacingS,
-                  medium: AppTheme.spacingM,
-                  large: AppTheme.spacingM,
-                ),
-              ),
-              child: const VoiceButton(),
+                if (audioService.isRecording) {
+                  return Container(
+                    color: theme.scaffoldBackgroundColor.withValues(alpha: 0.65),
+                    child: ListeningWaveform(
+                      isActive: true,
+                      statusLabel: api.isStreaming ? 'Processando...' : 'Ouvindo...',
+                      onCancel: () async {
+                        _logDebug(
+                          location: 'home_screen.dart:overlay',
+                          message: 'cancel pressed',
+                          hypothesisId: 'H1',
+                        );
+                        if (audioService.isRecording) {
+                          await audioService.cancelRecording();
+                        }
+                      },
+                      onSend: () async {
+                        _logDebug(
+                          location: 'home_screen.dart:overlay',
+                          message: 'send pressed',
+                          hypothesisId: 'H1',
+                          data: {'isRecording': audioService.isRecording},
+                        );
+                        if (!audioService.isRecording) {
+                          _logDebug(
+                            location: 'home_screen.dart:overlay',
+                            message: 'send ignored (not recording)',
+                            hypothesisId: 'H1',
+                          );
+                          return;
+                        }
+                        try {
+                          final audioBytes = await audioService.stopRecording();
+                          _logDebug(
+                            location: 'home_screen.dart:overlay',
+                            message: 'stopRecording returned',
+                            hypothesisId: 'H1',
+                            data: {'bytes': audioBytes?.length},
+                          );
+                          if (audioBytes == null) return;
+                          await api.sendAudio(audioBytes);
+                        } catch (e) {
+                          _logDebug(
+                            location: 'home_screen.dart:overlay',
+                            message: 'sendAudio error',
+                            hypothesisId: 'H1',
+                            data: {'error': e.toString()},
+                          );
+                          if (mounted) {
+                            ErrorHandler.showError(
+                              context,
+                              ErrorHandler.getErrorMessage(e),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ],
         ),

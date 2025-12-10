@@ -9,12 +9,18 @@ import 'services/wake_word_backend_service.dart';
 import 'services/audio_stream_service.dart';
 import 'services/background_wake_word_service.dart';
 import 'services/error_monitor.dart';
+import 'services/theme_service.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Inicializa monitoramento global de erros
   ErrorMonitor.initialize();
+
+  // Inicializa ThemeService e carrega preferência
+  final themeService = ThemeService();
+  await themeService.loadThemePreference();
 
   // Inicializa serviço de background APENAS em Android/iOS (não funciona no web)
   if (!kIsWeb) {
@@ -32,44 +38,39 @@ void main() async {
         'ℹ️ Background service não disponível no web (apenas Android/iOS)');
   }
 
-  runApp(const JonhAssistantApp());
+  runApp(JonhAssistantApp(themeService: themeService));
 }
 
 class JonhAssistantApp extends StatelessWidget {
-  const JonhAssistantApp({super.key});
+  final ThemeService themeService;
+
+  const JonhAssistantApp({
+    super.key,
+    required this.themeService,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: themeService),
         ChangeNotifierProvider(create: (_) => ApiService()),
         ChangeNotifierProvider(create: (_) => AudioService()),
         ChangeNotifierProvider(create: (_) => WakeWordService()),
         ChangeNotifierProvider(create: (_) => WakeWordBackendService()),
         ChangeNotifierProvider(create: (_) => AudioStreamService()),
       ],
-      child: MaterialApp(
-        title: 'Jonh Assistant',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1), // AppTheme.primary
-            brightness: Brightness.light,
-          ),
-          useMaterial3: true,
-          // Aplica design system
-          scaffoldBackgroundColor:
-              const Color(0xFFF9FAFB), // AppTheme.background
-        ),
-        darkTheme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF6366F1), // AppTheme.primary
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
-        themeMode: ThemeMode.system,
-        home: const HomeScreen(),
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, child) {
+          return MaterialApp(
+            title: 'Jonh Assistant',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeService.themeMode,
+            home: const HomeScreen(),
+          );
+        },
       ),
     );
   }
