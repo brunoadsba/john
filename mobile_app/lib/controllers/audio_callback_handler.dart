@@ -16,43 +16,13 @@ class AudioCallbackHandler {
     required this.onPlayingStateChanged,
   });
 
-  /// Configura callback no ApiService
+  /// Configura callback no ApiService (DESABILITADO - TTS desabilitado)
+  @Deprecated('TTS desabilitado - agente responde apenas via texto')
   void setupCallback(ApiService apiService, BuildContext context) {
-    apiService.onAudioReceived = (audioBytes) async {
-      debugPrint('🔊 Áudio recebido do servidor: ${audioBytes.length} bytes');
-
-      // Validação centralizada usando AudioValidator
-      final validation = AudioValidator.validateAll(audioBytes);
-      if (!validation.isValid) {
-        debugPrint('⚠️ Validação falhou: ${validation.errorMessage}');
-        if (context.mounted) {
-          ErrorHandler.showWarning(
-            context,
-            AudioValidator.getUserFriendlyErrorMessage(validation.errorMessage),
-          );
-        }
-        return;
-      }
-
-      try {
-        onPlayingStateChanged(true);
-        debugPrint('▶️ Iniciando reprodução...');
-        await audioService.playAudio(audioBytes);
-        debugPrint('✅ Reprodução concluída');
-      } catch (e, stackTrace) {
-        debugPrint('❌ Erro ao reproduzir áudio: $e');
-        debugPrint('Stack trace: $stackTrace');
-        if (context.mounted) {
-          ErrorHandler.showAudioError(
-            context,
-            ErrorHandler.getErrorMessage(e),
-          );
-        }
-      } finally {
-        onPlayingStateChanged(false);
-        debugPrint('🏁 Flag de reprodução resetada');
-      }
-    };
+    // NOTA: Callback de áudio removido - TTS desabilitado
+    // O agente agora responde apenas via texto, não há mais reprodução de áudio
+    // apiService.onAudioReceived não é mais configurado
+    debugPrint('ℹ️ AudioCallbackHandler desabilitado - TTS desabilitado');
   }
 }
 

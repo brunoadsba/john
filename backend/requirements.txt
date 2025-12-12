@@ -44,6 +44,9 @@ pytest>=7.4.4
 pytest-asyncio>=0.23.3
 httpx>=0.26.0
 
+# HTTP Client (para GeocodingService)
+aiohttp>=3.13.0
+
 # Rate Limiting
 slowapi>=0.1.9
 
@@ -54,6 +57,7 @@ torch>=2.0.0  # Requerido pelo sentence-transformers (~2GB)
 # Busca Web (Tool Calling)
 duckduckgo-search>=4.1.0  # Busca web gratuita (padrão)
 tavily-python>=0.3.0  # Opcional - busca web premium (requer API key)
+requests>=2.31.0  # Para requisições HTTP (usado em CurrencyConverterPlugin e outros)
 
 # Fine-tuning e RLHF
 peft>=0.6.0  # Para LoRA (Low-Rank Adaptation)

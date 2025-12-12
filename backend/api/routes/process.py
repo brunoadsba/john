@@ -49,9 +49,10 @@ feedback_service = None  # Serviço de feedback para coleta de dados
 reward_model_service = None  # Modelo de recompensa para RLHF (opcional)
 rlhf_service = None  # Serviço RLHF (opcional)
 response_cache = None  # Cache de respostas (opcional)
+privacy_mode_service = None  # Serviço de modo privacidade
 
 
-def init_services(stt, llm, tts, ctx, memory=None, web_search=None, intent_detector_instance=None, feedback_service_instance=None, response_cache_instance=None):
+def init_services(stt, llm, tts, ctx, memory=None, web_search=None, intent_detector_instance=None, feedback_service_instance=None, response_cache_instance=None, privacy_mode_service_instance=None):
     """
     Inicializa os serviços
     
@@ -65,7 +66,7 @@ def init_services(stt, llm, tts, ctx, memory=None, web_search=None, intent_detec
         intent_detector_instance: Instância do IntentDetector
         feedback_service_instance: Instância do FeedbackService
     """
-    global stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, web_search_tool, intent_detector, feedback_service, reward_model_service, rlhf_service, response_cache
+    global stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, web_search_tool, intent_detector, feedback_service, reward_model_service, rlhf_service, response_cache, privacy_mode_service
     stt_service = stt
     llm_service = llm
     tts_service = tts
@@ -74,6 +75,7 @@ def init_services(stt, llm, tts, ctx, memory=None, web_search=None, intent_detec
     feedback_service = feedback_service_instance
     intent_detector = intent_detector_instance
     response_cache = response_cache_instance
+    privacy_mode_service = privacy_mode_service_instance
     
     # Aceita PluginManager ou web_search_tool antigo (compatibilidade)
     from backend.core.plugin_manager import PluginManager
@@ -297,7 +299,8 @@ async def process_text(
             texto=texto,
             session_id=session_id,
             system_prompt=system_prompt,
-            response_cache=response_cache
+            response_cache=response_cache,
+            privacy_mode_service=privacy_mode_service
         )
         
         return response

@@ -39,7 +39,8 @@ class ContextManager:
         self.sessions[session_id] = {
             "created_at": datetime.now(),
             "last_activity": datetime.now(),
-            "messages": []
+            "messages": [],
+            "location": None  # {latitude, longitude, address_info}
         }
         
         logger.info(f"Nova sessão criada: {session_id}")
@@ -184,4 +185,47 @@ class ContextManager:
             Lista de IDs de sessão
         """
         return list(self.sessions.keys())
+    
+    def set_location(
+        self,
+        session_id: str,
+        latitude: float,
+        longitude: float,
+        address_info: Optional[Dict] = None
+    ):
+        """
+        Define localização para uma sessão
+        
+        Args:
+            session_id: ID da sessão
+            latitude: Latitude
+            longitude: Longitude
+            address_info: Informações de endereço (opcional)
+        """
+        if session_id not in self.sessions:
+            logger.warning(f"Sessão {session_id} não encontrada, criando nova")
+            self.create_session()
+        
+        self.sessions[session_id]["location"] = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "address_info": address_info,
+            "updated_at": datetime.now()
+        }
+        logger.debug(f"Localização definida para sessão {session_id}: {latitude}, {longitude}")
+    
+    def get_location(self, session_id: str) -> Optional[Dict]:
+        """
+        Obtém localização de uma sessão
+        
+        Args:
+            session_id: ID da sessão
+            
+        Returns:
+            Dict com localização ou None
+        """
+        if session_id not in self.sessions:
+            return None
+        
+        return self.sessions[session_id].get("location")
 

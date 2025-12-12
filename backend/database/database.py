@@ -94,6 +94,33 @@ class Database:
         """) as cursor:
             await self._connection.commit()
         
+        # Tabela de conversas salvas (histórico de conversas)
+        async with self._connection.execute("""
+            CREATE TABLE IF NOT EXISTS saved_conversations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL UNIQUE,
+                title TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                messages TEXT NOT NULL,
+                saved BOOLEAN DEFAULT 1,
+                user_id TEXT
+            )
+        """) as cursor:
+            await self._connection.commit()
+        
+        async with self._connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_saved_conversations_session 
+            ON saved_conversations(session_id)
+        """) as cursor:
+            await self._connection.commit()
+        
+        async with self._connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_saved_conversations_created 
+            ON saved_conversations(created_at DESC)
+        """) as cursor:
+            await self._connection.commit()
+        
         # Tabela de conversas (para coleta de dados de treinamento)
         async with self._connection.execute("""
             CREATE TABLE IF NOT EXISTS conversations (

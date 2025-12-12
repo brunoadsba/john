@@ -23,6 +23,7 @@ from backend.api.handlers.response_cache_handler import (
     set_cached_response
 )
 from backend.services.response_sanitizer import get_sanitizer
+from backend.scripts.capture_assistant_responses import capture_response
 
 
 async def process_text_complete(
@@ -39,7 +40,8 @@ async def process_text_complete(
     texto: str,
     session_id: Optional[str],
     system_prompt: Optional[str] = None,
-    response_cache: Optional[Any] = None
+    response_cache: Optional[Any] = None,
+    privacy_mode_service: Optional[Any] = None
 ) -> Tuple[Response, str, float]:
     """
     Processa texto completo: LLM -> TTS
@@ -74,9 +76,8 @@ async def process_text_complete(
             # Adiciona ao contexto
             await context_manager.add_message(session_id or "cache", "assistant", resposta_texto)
             
-            # TTS
-            logger.info("Etapa 2: Síntese de voz (TTS)")
-            audio_resposta = await tts_service.synthesize(resposta_texto)
+            # NOTA: TTS desabilitado - agente responde apenas via texto
+            logger.info("ℹ️ TTS desabilitado - resposta apenas em texto")
             
             tempo_total = time.time() - start_time
             
@@ -88,12 +89,23 @@ async def process_text_complete(
             
             logger.info(
                 f"Processamento completo (cache) em {tempo_total:.2f}s: "
-                f"TEXTO -> CACHE -> '{resposta_texto}' -> TTS"
+                f"TEXTO -> CACHE -> '{resposta_texto}' (apenas texto)"
             )
             
+            # Retorna JSON com texto da resposta
+            import json
+            response_data = {
+                "text": resposta_texto,
+                "input": texto,
+                "session_id": session_id or "cache",
+                "tokens": tokens,
+                "processing_time": tempo_total,
+                "cache_hit": True
+            }
+            
             response = Response(
-                content=audio_resposta,
-                media_type="audio/wav",
+                content=json.dumps(response_data, ensure_ascii=False),
+                media_type="application/json",
                 headers={
                     "X-Input-Text": sanitize_header_value(texto),
                     "X-Response-Text": sanitize_header_value(resposta_texto),
@@ -117,8 +129,14 @@ async def process_text_complete(
         llm_service=llm_service,
         audio_data=None,
         texto=texto,
-        session_id=session_id
+        session_id=session_id,
+        privacy_mode_service=privacy_mode_service
     )
+    
+    # Obtém LLM ativo do privacy_mode_service se disponível
+    active_llm = llm_service
+    if privacy_mode_service:
+        active_llm = privacy_mode_service.get_active_llm_service() or llm_service
     
     # 1.5. Detecta intenção de arquitetura usando handler
     architecture_result = await handle_architecture_intent(
@@ -127,6 +145,11 @@ async def process_text_complete(
     
     # 2. LLM - Gera resposta
     logger.info("Etapa 1: Geração de resposta (LLM)")
+    
+    # Obtém LLM ativo do privacy_mode_service se disponível
+    active_llm = llm_service
+    if privacy_mode_service:
+        active_llm = privacy_mode_service.get_active_llm_service() or llm_service
     
     # Se detectou intenção de arquitetura, chama plugin diretamente
     if architecture_result:
@@ -142,9 +165,8 @@ async def process_text_complete(
                 # Adiciona ao contexto
                 await context_manager.add_message(session_id, "assistant", resposta_texto)
                 
-                # TTS
-                logger.info("Etapa 2: Síntese de voz (TTS)")
-                audio_resposta = await tts_service.synthesize(resposta_texto)
+                # NOTA: TTS desabilitado - agente responde apenas via texto
+                logger.info("ℹ️ TTS desabilitado - resposta apenas em texto")
                 
                 tempo_total = time.time() - start_time
                 
@@ -156,12 +178,23 @@ async def process_text_complete(
                 
                 logger.info(
                     f"Processamento completo em {tempo_total:.2f}s: "
-                    f"INTENT → Architecture Advisor → '{resposta_texto}' → TTS"
+                    f"INTENT → Architecture Advisor → '{resposta_texto}' (apenas texto)"
                 )
                 
+                # Retorna JSON com texto da resposta
+                import json
+                response_data = {
+                    "text": resposta_texto,
+                    "input": texto,
+                    "session_id": session_id,
+                    "tokens": tokens,
+                    "processing_time": tempo_total,
+                    "architecture_intent": architecture_intent
+                }
+                
                 response = Response(
-                    content=audio_resposta,
-                    media_type="audio/wav",
+                    content=json.dumps(response_data, ensure_ascii=False),
+                    media_type="application/json",
                     headers={
                         "X-Input-Text": sanitize_header_value(texto),
                         "X-Response-Text": sanitize_header_value(resposta_texto),
@@ -184,7 +217,7 @@ async def process_text_complete(
     
     # Processa com LLM usando handler (tools já preparados em paralelo)
     resposta_texto, tokens = await process_with_llm(
-        llm_service=llm_service,
+        llm_service=active_llm,
         texto=texto,
         contexto=contexto,
         memoria_contexto=memoria_contexto,
@@ -210,6 +243,7 @@ async def process_text_complete(
     if resposta_texto != resposta_texto_original:
         logger.info(f"🔧 Resposta sanitizada: '{resposta_texto_original[:50]}...' -> '{resposta_texto[:50]}...'")
     
+    
     # Salva memórias em paralelo (não bloqueia resposta)
     await save_memories_parallel(
         memory_service, texto, resposta_texto
@@ -222,9 +256,8 @@ async def process_text_complete(
     await context_manager.add_message(session_id, "assistant", resposta_texto)
     logger.info(f"Resposta: '{resposta_texto}'")
     
-    # 3. Text-to-Speech
-    logger.info("Etapa 2: Síntese de voz (TTS)")
-    audio_resposta = await tts_service.synthesize(resposta_texto)
+    # NOTA: TTS desabilitado - agente responde apenas via texto
+    logger.info("ℹ️ TTS desabilitado - resposta apenas em texto")
     
     tempo_total = time.time() - start_time
     
@@ -241,13 +274,40 @@ async def process_text_complete(
     
     logger.info(
         f"Processamento completo em {tempo_total:.2f}s: "
-        f"TEXTO -> '{texto}' -> LLM -> '{resposta_texto}' -> TTS"
+        f"TEXTO -> '{texto}' -> LLM -> '{resposta_texto}' (apenas texto)"
     )
     
-    # Retorna áudio com headers informativos
+    # Captura resposta para análise (em background, não bloqueia)
+    try:
+        contexto_list = [{"role": msg["role"], "content": msg["content"]} for msg in contexto] if contexto else []
+        capture_response(
+            user_input=texto,
+            assistant_response=resposta_texto_original,
+            session_id=session_id,
+            tokens=tokens,
+            processing_time=tempo_total,
+            tools_used=[used_tool] if used_tool else None,
+            sanitized_response=resposta_texto if resposta_texto != resposta_texto_original else None,
+            context_messages=contexto_list,
+            audio_data=None,  # Sem áudio
+            audio_duration=None  # Sem duração de áudio
+        )
+    except Exception as e:
+        logger.debug(f"Erro ao capturar resposta (não crítico): {e}")
+    
+    # Retorna JSON com texto da resposta
+    import json
+    response_data = {
+        "text": resposta_texto,
+        "input": texto,
+        "session_id": session_id,
+        "tokens": tokens,
+        "processing_time": tempo_total
+    }
+    
     response = Response(
-        content=audio_resposta,
-        media_type="audio/wav",
+        content=json.dumps(response_data, ensure_ascii=False),
+        media_type="application/json",
         headers={
             "X-Input-Text": sanitize_header_value(texto),
             "X-Response-Text": sanitize_header_value(resposta_texto),

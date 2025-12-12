@@ -2,6 +2,7 @@
 Gerenciador de contexto de conversação com persistência em banco de dados
 """
 import uuid
+import json
 from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 from loguru import logger
@@ -151,4 +152,73 @@ class ContextManagerDB:
         """
         sessions = await self.db.list_sessions()
         return [s["session_id"] for s in sessions]
+    
+    async def set_location(
+        self,
+        session_id: str,
+        latitude: float,
+        longitude: float,
+        address_info: Optional[Dict] = None
+    ):
+        """
+        Define localização para uma sessão
+        
+        Args:
+            session_id: ID da sessão
+            latitude: Latitude
+            longitude: Longitude
+            address_info: Informações de endereço (opcional)
+        """
+        # Obtém sessão atual (ou cria se não existir)
+        session = await self.db.get_session(session_id)
+        if not session:
+            logger.info(f"Sessão {session_id} não encontrada, criando nova com session_id fornecido")
+            # Cria sessão com o session_id fornecido (não gera novo UUID)
+            await self.db.create_session(session_id, metadata=None)
+            session = await self.db.get_session(session_id)
+            if not session:
+                raise ValueError(f"Falha ao criar sessão {session_id}")
+        
+        # Atualiza metadata com localização
+        metadata = session.get("metadata", {}) if session else {}
+        if not isinstance(metadata, dict):
+            metadata = {}
+        
+        metadata["location"] = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "address_info": address_info,
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        # Atualiza metadata na sessão (usa json importado no topo do arquivo)
+        metadata_json = json.dumps(metadata)
+        await self.db._connection.execute("""
+            UPDATE sessions 
+            SET metadata = ?
+            WHERE session_id = ?
+        """, (metadata_json, session_id))
+        await self.db._connection.commit()
+        
+        logger.debug(f"Localização definida para sessão {session_id}: {latitude}, {longitude}")
+    
+    async def get_location(self, session_id: str) -> Optional[Dict]:
+        """
+        Obtém localização de uma sessão
+        
+        Args:
+            session_id: ID da sessão
+            
+        Returns:
+            Dict com localização ou None
+        """
+        session = await self.db.get_session(session_id)
+        if not session:
+            return None
+        
+        metadata = session.get("metadata")
+        if not metadata or not isinstance(metadata, dict):
+            return None
+        
+        return metadata.get("location")
 

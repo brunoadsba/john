@@ -6,8 +6,14 @@ import '../services/feedback_service.dart';
 import '../services/url_safety_service.dart';
 import '../models/message.dart';
 import '../theme/app_theme.dart';
+import '../theme/responsive.dart';
 import 'modern_chat_bubble.dart';
 import 'typing_indicator.dart';
+import 'suggestion_chips_carousel.dart';
+import 'glassmorphic_container.dart';
+import 'hero_section.dart';
+import 'quick_actions_grid.dart';
+import 'dart:math' as math;
 
 /// Lista de mensagens da conversa
 class MessageList extends StatelessWidget {
@@ -20,84 +26,7 @@ class MessageList extends StatelessWidget {
         final messages = apiService.messages;
 
         if (messages.isEmpty) {
-          final theme = Theme.of(context);
-          final primary = theme.colorScheme.primary;
-          final secondary = theme.colorScheme.secondary;
-          return Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Avatar / logo central
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      color: secondary.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.smart_toy,
-                      color: secondary,
-                      size: 44,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Olá, eu sou o Jonh',
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Seu assistente virtual inteligente.',
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.textTheme.bodySmall?.color,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 28),
-                  // Chips de sugestão
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _SuggestionChip(
-                        label: 'Escrever um e-mail',
-                        onTap: () => apiService.sendText('Escreva um e-mail profissional'),
-                        primary: primary,
-                      ),
-                      _SuggestionChip(
-                        label: 'Dicas de produtividade',
-                        onTap: () => apiService.sendText('Quero dicas de produtividade no trabalho'),
-                        primary: primary,
-                      ),
-                      _SuggestionChip(
-                        label: 'Criar um produto',
-                        onTap: () => apiService.sendText('Me ajude a criar um novo produto'),
-                        primary: primary,
-                      ),
-                      _SuggestionChip(
-                        label: 'Contar uma piada',
-                        onTap: () => apiService.sendText('Conte uma piada curta e engraçada'),
-                        primary: primary,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Digite uma mensagem ou use o botão de voz',
-                    style: theme.textTheme.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          );
+          return _buildEmptyState(context, apiService);
         }
 
         final screenWidth = MediaQuery.of(context).size.width;
@@ -213,6 +142,87 @@ class MessageList extends StatelessWidget {
       },
     );
   }
+
+  Widget _buildEmptyState(BuildContext context, ApiService apiService) {
+    // Ações rápidas baseadas no HTML
+    final quickActions = [
+      QuickActionData(
+        icon: '💼',
+        title: 'Buscar Vagas',
+        subtitle: 'Encontre oportunidades',
+        onTap: () => apiService.sendText('Buscar vagas de emprego em tecnologia'),
+      ),
+      QuickActionData(
+        icon: '✉️',
+        title: 'Escrever Email',
+        subtitle: 'Crie mensagens',
+        onTap: () => apiService.sendText('Escreva um e-mail profissional'),
+      ),
+      QuickActionData(
+        icon: '📊',
+        title: 'Analisar Dados',
+        subtitle: 'Insights rápidos',
+        onTap: () => apiService.sendText('Me ajude a analisar dados'),
+      ),
+      QuickActionData(
+        icon: '🎯',
+        title: 'Criar Conteúdo',
+        subtitle: 'Textos e ideias',
+        onTap: () => apiService.sendText('Me ajude a criar conteúdo'),
+      ),
+    ];
+
+    // Sugestões de chips
+    final suggestions = [
+      SuggestionChipData(
+        label: '💡 Me dê uma ideia',
+        text: 'Me dê uma ideia criativa',
+        icon: Icons.lightbulb,
+        onTap: () => apiService.sendText('Me dê uma ideia criativa'),
+      ),
+      SuggestionChipData(
+        label: '📝 Resuma um texto',
+        text: 'Resuma um texto para mim',
+        icon: Icons.summarize,
+        onTap: () => apiService.sendText('Resuma um texto para mim'),
+      ),
+      SuggestionChipData(
+        label: '🔍 Pesquise sobre...',
+        text: 'Pesquise informações sobre',
+        icon: Icons.search,
+        onTap: () => apiService.sendText('Pesquise informações sobre'),
+      ),
+    ];
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Hero Section (Avatar animado + Saudação)
+          const HeroSection(),
+          
+          const SizedBox(height: 32),
+          
+          // Quick Actions Grid
+          QuickActionsGrid(
+            actions: quickActions,
+            onActionTap: (title) {
+              // Action tap já é tratado no QuickActionData.onTap
+            },
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Suggestion Chips Carousel
+          SuggestionChipsCarousel(
+            suggestions: suggestions,
+            onSuggestionTap: (text) => apiService.sendText(text),
+          ),
+          
+          const SizedBox(height: 16),
+        ],
+      ),
+    );
+  }
 }
 
 String _formatDateHeader(DateTime dt) {
@@ -238,40 +248,6 @@ String _formatDateHeader(DateTime dt) {
   return '$weekdayLabel, ${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
 }
 
-class _SuggestionChip extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final Color primary;
-
-  const _SuggestionChip({
-    required this.label,
-    required this.onTap,
-    required this.primary,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: primary.withOpacity(0.12),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: primary.withOpacity(0.35)),
-        ),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: primary,
-                fontWeight: FontWeight.w600,
-              ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Widget animado para mensagens (slide + fade)
 class _AnimatedMessage extends StatefulWidget {

@@ -5,10 +5,10 @@ Aplicativo mobile Flutter para interagir com o assistente de voz Jonh.
 ## 🎯 Funcionalidades
 
 - ✅ **Interface de Chat**: Conversação fluida com o assistente
-- ✅ **Gravação de Áudio**: Captura otimizada (16kHz mono)
+- ✅ **Gravação de Áudio**: Captura otimizada (16kHz mono) para entrada do usuário
 - ✅ **WebSocket**: Comunicação em tempo real
-- ✅ **Reprodução de Áudio**: Respostas em voz
-- 🔄 **Wake Word**: Detecção por voz "Jonh" (em desenvolvimento)
+- ✅ **Respostas em Texto**: Assistente responde via texto (TTS desabilitado no fluxo principal)
+- ⚠️ **Wake Word**: Implementado mas requer configuração (Access Key do Picovoice + modelo)
 
 ## 📋 Requisitos
 
@@ -199,9 +199,9 @@ flutter test test/services/api_service_test.dart
 - Envio: ~100ms
 - STT: ~800ms
 - LLM: ~300ms (Groq) / ~1800ms (Ollama)
-- TTS: ~400ms
-- Reprodução: Instantâneo
-- **Total: ~1.6s (Groq) / ~3.1s (Ollama)**
+- **Total: ~1.2s (Groq) / ~2.7s (Ollama)**
+
+*Nota: TTS está desabilitado no fluxo principal. Respostas são apenas em texto.*
 
 ## 🛠️ Desenvolvimento
 
@@ -233,13 +233,13 @@ flutter format lib/
 
 ## 🔮 Roadmap
 
-- [ ] Wake word detection (Porcupine)
-- [ ] Detecção de silêncio automática
-- [ ] Histórico persistente (SQLite)
-- [ ] Configurações de usuário
-- [ ] Suporte iOS
-- [ ] Temas customizáveis
-- [ ] Modo offline parcial
+- [x] Wake word detection (Porcupine) - ⚠️ Requer configuração
+- [ ] Reabilitar TTS no fluxo principal
+- [x] Histórico persistente (SQLite) - ✅ Implementado
+- [x] Configurações de usuário - ✅ Implementado
+- [ ] Suporte iOS completo
+- [x] Temas customizáveis - ✅ Implementado
+- [x] Modo offline parcial - ✅ Implementado
 
 ## 🤝 Contribuindo
 

@@ -8,15 +8,21 @@ import 'services/wake_word_service.dart';
 import 'services/wake_word_backend_service.dart';
 import 'services/audio_stream_service.dart';
 import 'services/background_wake_word_service.dart';
+import 'services/location_service.dart';
 import 'services/error_monitor.dart';
 import 'services/theme_service.dart';
 import 'theme/app_theme.dart';
+import 'utils/device_compatibility.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Inicializa monitoramento global de erros
   ErrorMonitor.initialize();
+  
+  // Verifica compatibilidade do dispositivo e loga
+  final compatibilitySummary = await DeviceCompatibility.getCompatibilitySummary();
+  debugPrint('📱 $compatibilitySummary');
 
   // Inicializa ThemeService e carrega preferência
   final themeService = ThemeService();
@@ -59,6 +65,9 @@ class JonhAssistantApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WakeWordService()),
         ChangeNotifierProvider(create: (_) => WakeWordBackendService()),
         ChangeNotifierProvider(create: (_) => AudioStreamService()),
+        ProxyProvider<ApiService, LocationService>(
+          update: (_, apiService, __) => LocationService(apiService),
+        ),
       ],
       child: Consumer<ThemeService>(
         builder: (context, themeService, child) {

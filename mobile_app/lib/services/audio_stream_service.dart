@@ -2,10 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:record/record.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:io' if (dart.library.html) 'dart:html' as io;
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:http/http.dart' as http;
+
+// Helper para criação de File com suporte web/mobile
+import 'file_helper.dart';
 
 /// Serviço de streaming de áudio para wake word detection
 ///
@@ -41,13 +43,16 @@ class AudioStreamService extends ChangeNotifier {
     return _hasPermission;
   }
 
+
   /// Obtém caminho temporário
   Future<String> _getTempPath() async {
     try {
-      if (!kIsWeb && (io.Platform.isAndroid || io.Platform.isIOS)) {
+      if (!kIsWeb) {
+        // No mobile, usa temporary directory
         final directory = await getTemporaryDirectory();
         return directory.path;
       } else {
+        // No web, não usa arquivos locais
         return '/tmp';
       }
     } catch (e) {
@@ -142,45 +147,50 @@ class AudioStreamService extends ChangeNotifier {
             return;
           }
 
-          final file = io.File(_streamingPath!);
-          if (await file.exists()) {
-            final currentSize = await file.length();
+          if (!kIsWeb && _streamingPath != null) {
+            // File só disponível em mobile, não no web
+            // Usa helper com import condicional
+            final file = createFileForStream(_streamingPath!);
+            if (file != null && await file.exists()) {
+              final currentSize = await file.length();
 
-            // Se há novos dados desde a última leitura
-            if (currentSize > _lastChunkPosition) {
-              final fileBytes = await file.readAsBytes();
-
-              // WAV header = 44 bytes
-              const headerSize = 44;
-              final dataStart = headerSize;
-
-              // Ajusta posição inicial se necessário
-              if (_lastChunkPosition < dataStart) {
-                _lastChunkPosition = dataStart;
-              }
-
+              // Se há novos dados desde a última leitura
               if (currentSize > _lastChunkPosition) {
-                // Calcula tamanho do chunk (~1280 bytes = 80ms)
-                final chunkSize = currentSize - _lastChunkPosition;
-                const maxChunkSize = 1280;
-                final actualChunkSize =
-                    chunkSize > maxChunkSize ? maxChunkSize : chunkSize;
+                final fileBytes = await file.readAsBytes();
 
-                // Extrai chunk (apenas dados PCM, sem header)
-                if (_lastChunkPosition >= dataStart &&
-                    _lastChunkPosition + actualChunkSize <= fileBytes.length) {
-                  final chunk = Uint8List.sublistView(
-                    fileBytes,
-                    _lastChunkPosition,
-                    _lastChunkPosition + actualChunkSize,
-                  );
+                // WAV header = 44 bytes
+                const headerSize = 44;
+                final dataStart = headerSize;
 
-                  // Envia chunk via callback
-                  if (onAudioChunk != null && chunk.isNotEmpty) {
-                    onAudioChunk!(chunk);
+                // Ajusta posição inicial se necessário
+                if (_lastChunkPosition < dataStart) {
+                  _lastChunkPosition = dataStart;
+                }
+
+                if (currentSize > _lastChunkPosition) {
+                  // Calcula tamanho do chunk (~1280 bytes = 80ms)
+                  final chunkSize = currentSize - _lastChunkPosition;
+                  const maxChunkSize = 1280;
+                  final actualChunkSize = (chunkSize > maxChunkSize 
+                      ? maxChunkSize 
+                      : chunkSize) as int;
+
+                  // Extrai chunk (apenas dados PCM, sem header)
+                  if (_lastChunkPosition >= dataStart &&
+                      _lastChunkPosition + actualChunkSize <= fileBytes.length) {
+                    final chunk = Uint8List.sublistView(
+                      fileBytes,
+                      _lastChunkPosition,
+                      _lastChunkPosition + actualChunkSize,
+                    );
+
+                    // Envia chunk via callback
+                    if (onAudioChunk != null && chunk.isNotEmpty) {
+                      onAudioChunk!(chunk);
+                    }
+
+                    _lastChunkPosition = _lastChunkPosition + actualChunkSize;
                   }
-
-                  _lastChunkPosition += actualChunkSize.toInt();
                 }
               }
             }
@@ -227,8 +237,9 @@ class AudioStreamService extends ChangeNotifier {
     // Remove arquivo temporário (apenas se não for web)
     if (_streamingPath != null && !kIsWeb) {
       try {
-        final file = io.File(_streamingPath!);
-        if (await file.exists()) {
+        // File só disponível em mobile, não no web
+        final file = createFileForStream(_streamingPath!);
+        if (file != null && await file.exists()) {
           await file.delete();
         }
       } catch (e) {
@@ -236,7 +247,7 @@ class AudioStreamService extends ChangeNotifier {
             '⚠️ AudioStreamService: Não foi possível deletar arquivo de streaming: $e');
       }
       _streamingPath = null;
-    } else if (kIsWeb) {
+    } else {
       _streamingPath = null;
     }
 

@@ -28,18 +28,16 @@ class ApiService extends ChangeNotifier {
   PerformanceMetrics get metrics => _messageHandler.metrics;
   List<Message> get messages => _messageHandler.messages;
 
-  /// Callback para reproduzir áudio quando recebido
+  /// Callback para reproduzir áudio quando recebido (DESABILITADO - TTS desabilitado)
+  @Deprecated('TTS desabilitado - agente responde apenas via texto')
   Function(Uint8List)? onAudioReceived;
 
   ApiService() {
     _wsClient.onMessage = (data) => _messageHandler.handleMessage(data);
     _wsClient.onError = (_) => _handleDisconnection();
     _wsClient.onDone = () => _handleDisconnection();
-    _messageHandler.onAudioReceived = (audio) {
-      if (onAudioReceived != null) {
-        onAudioReceived!(audio);
-      }
-    };
+    // NOTA: Callback de áudio removido - TTS desabilitado
+    // _messageHandler.onAudioReceived removido pois não processamos mais áudio
     
     // Configura callbacks do streaming
     _streamingService.onStart = (sessionId) {
@@ -71,7 +69,7 @@ class ApiService extends ChangeNotifier {
     return await _connectionManager.testConnection();
   }
 
-  /// Conecta ao WebSocket
+  /// Conecta ao WebSocket (não lança exceção - permite modo offline)
   Future<void> connect() async {
     if (_isConnected) {
       debugPrint('✅ WebSocket já está conectado');
@@ -81,7 +79,8 @@ class ApiService extends ChangeNotifier {
     try {
       final isServerAvailable = await _connectionManager.testConnection();
       if (!isServerAvailable) {
-        throw Exception('Servidor não está acessível');
+        debugPrint('⚠️ Servidor não está acessível - app funcionará em modo offline');
+        return; // Não lança exceção, apenas retorna
       }
 
       await _wsClient.connect();
@@ -94,15 +93,16 @@ class ApiService extends ChangeNotifier {
       }
     } catch (e, stackTrace) {
       debugPrint('❌ Erro ao conectar: $e');
+      // Não reporta como erro crítico - permite modo offline
       ErrorMonitor.reportError(
         message: 'Erro ao conectar WebSocket: $e',
         stackTrace: stackTrace.toString(),
-        level: 'error',
+        level: 'warning', // Muda para warning em vez de error
         type: 'network',
         additionalContext: {'action': 'connect'},
       );
       _handleDisconnection();
-      rethrow;
+      // Não relança exceção - permite app funcionar offline
     }
   }
 
@@ -133,8 +133,8 @@ class ApiService extends ChangeNotifier {
     try {
       metrics.markAudioSent();
       
-      // Adiciona mensagem do usuário imediatamente (feedback visual)
-      _messageHandler.addUserMessage("🎤 Áudio enviado...");
+      // Adiciona mensagem do usuário imediatamente (Optimistic UI)
+      _messageHandler.addUserMessage("🎤 Áudio enviado...", status: MessageStatus.sending);
       notifyListeners();
       
       _wsClient.send(Uint8List.fromList(audioBytes));
@@ -190,6 +190,9 @@ class ApiService extends ChangeNotifier {
   /// Inicia sessão
   void startSession() {
     sendControlMessage({'type': 'start_session'});
+    
+    // Notifica que uma nova sessão foi criada (para LocationService)
+    notifyListeners();
   }
 
   /// Encerra sessão

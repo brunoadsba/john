@@ -26,23 +26,26 @@ memory_service = None
 plugin_manager = None  # Novo: PluginManager
 web_search_tool = None  # Mantido para compatibilidade
 feedback_service = None  # Serviço de feedback para coleta de dados
+privacy_mode_service = None  # Serviço de modo privacidade
 
 
-def init_handlers(stt, llm, tts, ctx, memory=None, web_search=None, feedback=None):
+def init_handlers(stt, llm, tts, ctx, memory=None, web_search=None, feedback=None, privacy_svc=None):
     """
     Inicializa os serviços nos handlers
     
     Args:
         web_search: PluginManager ou web_search_tool (compatibilidade)
         feedback: Serviço de feedback (opcional)
+        privacy_svc: Serviço de modo privacidade (opcional)
     """
-    global stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, web_search_tool, feedback_service
+    global stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, web_search_tool, feedback_service, privacy_mode_service
     stt_service = stt
     llm_service = llm
     tts_service = tts
     context_manager = ctx
     memory_service = memory
     feedback_service = feedback
+    privacy_mode_service = privacy_svc
     
     # Aceita PluginManager ou web_search_tool antigo (compatibilidade)
     from backend.core.plugin_manager import PluginManager
@@ -145,6 +148,7 @@ async def handle_audio_data(
         memory_service=memory_service,
         plugin_manager=plugin_manager,
         web_search_tool=web_search_tool,
-        feedback_service=feedback_service
+        feedback_service=feedback_service,
+        privacy_mode_service=privacy_mode_service
     )
 

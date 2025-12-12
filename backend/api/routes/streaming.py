@@ -21,6 +21,7 @@ plugin_manager = None
 web_search_tool = None
 intent_detector = None
 response_cache = None
+privacy_mode_service = None
 
 
 def init_services(
@@ -29,15 +30,17 @@ def init_services(
     memory=None,
     plugin_mgr=None,
     intent_detector_instance=None,
-    response_cache_instance=None
+    response_cache_instance=None,
+    privacy_mode_service_instance=None
 ):
     """Inicializa os serviços"""
-    global llm_service, context_manager, memory_service, plugin_manager, web_search_tool, intent_detector, response_cache
+    global llm_service, context_manager, memory_service, plugin_manager, web_search_tool, intent_detector, response_cache, privacy_mode_service
     llm_service = llm
     context_manager = ctx
     memory_service = memory
     intent_detector = intent_detector_instance
     response_cache = response_cache_instance
+    privacy_mode_service = privacy_mode_service_instance
     
     # Aceita PluginManager ou web_search_tool antigo (compatibilidade)
     from backend.core.plugin_manager import PluginManager
@@ -77,6 +80,11 @@ async def stream_llm_response(
                 yield f"data: {json.dumps({'type': 'complete', 'text': resposta_texto, 'tokens': tokens, 'cached': True})}\n\n"
                 return
         
+        # Obtém LLM ativo do privacy_mode_service se disponível
+        active_llm = llm_service
+        if privacy_mode_service:
+            active_llm = privacy_mode_service.get_active_llm_service() or llm_service
+        
         # Prepara contexto, memórias e tools em paralelo
         _, session_id, contexto, memoria_contexto, tools, tool_executor = await process_with_parallel_prep(
             stt_service=None,
@@ -84,10 +92,11 @@ async def stream_llm_response(
             memory_service=memory_service,
             plugin_manager=plugin_manager,
             web_search_tool=web_search_tool,
-            llm_service=llm_service,
+            llm_service=active_llm,
             audio_data=None,
             texto=texto,
-            session_id=session_id
+            session_id=session_id,
+            privacy_mode_service=privacy_mode_service
         )
         
         # Adiciona mensagem do usuário ao contexto
@@ -100,7 +109,7 @@ async def stream_llm_response(
         yield f"data: {json.dumps({'type': 'start', 'session_id': session_id})}\n\n"
         
         # Stream de tokens do LLM
-        async for token in llm_service.generate_response_stream(
+        async for token in active_llm.generate_response_stream(
             prompt=texto,
             contexto=contexto,
             memorias_contexto=memoria_contexto,

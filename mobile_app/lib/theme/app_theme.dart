@@ -8,18 +8,21 @@ class AppTheme {
   AppTheme._(); // Classe utilitária, não instanciável
 
   // ============================================================================
-  // CORES - Paleta WCAG AAA (WhatsApp + ChatGPT)
+  // CORES - Paleta Electric Cyan/Teal (Glassmorphism & Neon)
   // ============================================================================
 
-  // Light Theme Colors
-  /// Cor primária (WhatsApp Green 2024)
-  static const Color primary = Color(0xFF00A884);
+  // Electric Cyan/Teal Primary Colors
+  /// Cor primária (Electric Cyan)
+  static const Color primary = Color(0xFF00E5FF);
+
+  /// Cor primária (Teal)
+  static const Color primaryTeal = Color(0xFF2979FF);
 
   /// Cor primária mais escura
-  static const Color primaryDark = Color(0xFF008069);
+  static const Color primaryDark = Color(0xFF00B8D4);
 
   /// Cor primária mais clara
-  static const Color primaryLight = Color(0xFF25D366);
+  static const Color primaryLight = Color(0xFF40E0D0);
 
   /// Cor de sucesso (verde)
   static const Color success = Color(0xFF10B981);
@@ -54,9 +57,15 @@ class AppTheme {
   static const Color assistantBubbleLight = Color(0xFFFFFFFF);
 
   // Dark Theme Colors (WCAG AAA - contraste ≥ 7:1)
-  static const Color darkBackground = Color(0xFF0A0A0A);
-  static const Color darkSurface = Color(0xFF111111);
+  /// Background escuro (Midnight Blue)
+  static const Color darkBackground = Color(0xFF0A0E27);
+  static const Color darkSurface = Color(0xFF121212);
   static const Color darkSurfaceVariant = Color(0xFF1F2C34);
+  
+  // Glassmorphism Colors
+  /// Superfície glassmorphism (translúcida)
+  static const Color glassSurface = Color(0x1AFFFFFF);
+  static const Color glassSurfaceDark = Color(0x1A000000);
 
   // Dark Theme - Text Colors
   static const Color darkTextPrimary = Color(0xFFE4E6EB);
@@ -68,9 +77,34 @@ class AppTheme {
   static const Color assistantBubbleDark = Color(0xFF262626);
 
   // Status Colors
+  /// Online (Groq Cloud) - Electric Cyan
+  static const Color statusOnline = Color(0xFF00E5FF);
+  /// Offline (Ollama Local) - Orange
+  static const Color statusOffline = Color(0xFFFF9800);
+  /// Processing - Teal pulsante
+  static const Color statusProcessing = Color(0xFF2979FF);
+  
   static const Color readStatusBlue = Color(0xFF53BDEB);
   static const Color timestampLight = Color(0xFF667781);
   static const Color timestampDark = Color(0xFF8696A0);
+  
+  // Gradients
+  /// Gradiente cyan/teal para accents
+  static const LinearGradient cyanTealGradient = LinearGradient(
+    colors: [Color(0xFF00E5FF), Color(0xFF2979FF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+  
+  /// Gradiente radial para efeito metálico
+  static const RadialGradient metallicGradient = RadialGradient(
+    colors: [
+      Color(0xFFFFFFFF),
+      Color(0xFFE0E0E0),
+      Color(0xFFB0B0B0),
+    ],
+    stops: [0.0, 0.5, 1.0],
+  );
 
   // ============================================================================
   // ESPAÇAMENTOS
@@ -267,7 +301,7 @@ class AppTheme {
     scaffoldBackgroundColor: background,
     colorScheme: const ColorScheme.light(
       primary: primary,
-      secondary: Color(0xFF10A37F), // ChatGPT teal
+      secondary: primaryTeal,
       surface: surface,
       background: background,
       error: error,
@@ -337,7 +371,7 @@ class AppTheme {
     scaffoldBackgroundColor: darkBackground,
     colorScheme: const ColorScheme.dark(
       primary: primary,
-      secondary: Color(0xFF10A37F), // ChatGPT teal
+      secondary: primaryTeal,
       surface: darkSurface,
       background: darkBackground,
       error: error,

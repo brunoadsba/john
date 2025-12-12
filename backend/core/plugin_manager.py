@@ -72,6 +72,26 @@ class BasePlugin(ABC):
         para fazer detecção mais inteligente.
         """
         return True
+    
+    def requires_network(self) -> bool:
+        """
+        Indica se o plugin requer conexão com internet
+        
+        Returns:
+            True se requer internet, False caso contrário
+        """
+        return False
+    
+    def is_available_in_privacy_mode(self) -> bool:
+        """
+        Verifica se plugin está disponível em modo privacidade
+        
+        Returns:
+            True se disponível, False se requer internet
+        """
+        if self.requires_network():
+            return False
+        return self.is_enabled()
 
 
 class PluginManager:
@@ -153,9 +173,12 @@ class PluginManager:
         """
         return list(self._plugins.values())
     
-    def get_tool_definitions(self) -> List[Dict[str, Any]]:
+    def get_tool_definitions(self, privacy_mode: bool = False) -> List[Dict[str, Any]]:
         """
         Retorna definições de todas as tools dos plugins (formato OpenAI)
+        
+        Args:
+            privacy_mode: Se True, filtra plugins que requerem internet
         
         Returns:
             Lista de definições de tools
@@ -163,13 +186,19 @@ class PluginManager:
         tools = []
         for plugin in self._plugins.values():
             try:
+                # Filtra plugins de rede em modo privacidade
+                if privacy_mode and not plugin.is_available_in_privacy_mode():
+                    logger.debug(f"🔒 Plugin '{plugin.name}' filtrado (requer internet)")
+                    continue
+                    
                 tool_def = plugin.get_tool_definition()
                 if tool_def:
                     tools.append(tool_def)
             except Exception as e:
                 logger.error(f"❌ Erro ao obter tool definition do plugin '{plugin.name}': {e}")
         
-        logger.debug(f"📋 {len(tools)} tool definitions disponíveis")
+        mode_text = "privacidade" if privacy_mode else "normal"
+        logger.debug(f"📋 {len(tools)} tool definitions disponíveis (modo {mode_text})")
         return tools
     
     def execute_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Any:
