@@ -5,8 +5,16 @@ Migrado de backend/services/tool_service.py
 from typing import Dict, List, Optional, Any
 from loguru import logger
 import time
+import hashlib
 
 from backend.core.plugin_manager import BasePlugin
+
+try:
+    from cachetools import TTLCache
+    CACHE_AVAILABLE = True
+except ImportError:
+    CACHE_AVAILABLE = False
+    logger.warning("cachetools não disponível - cache de buscas desabilitado")
 
 try:
     from ddgs import DDGS  # ✅ Mudança aqui
@@ -33,7 +41,10 @@ class WebSearchPlugin(BasePlugin):
     def __init__(
         self,
         tavily_api_key: Optional[str] = None,
-        prefer_tavily: bool = False
+        prefer_tavily: bool = False,
+        enable_cache: bool = True,
+        cache_size: int = 100,
+        cache_ttl: int = 3600  # 1 hora
     ):
         """
         Inicializa o plugin de busca web
@@ -41,10 +52,22 @@ class WebSearchPlugin(BasePlugin):
         Args:
             tavily_api_key: API key do Tavily (opcional)
             prefer_tavily: Se True, usa Tavily como primeira opção
+            enable_cache: Habilita cache de buscas recentes
+            cache_size: Tamanho máximo do cache
+            cache_ttl: Time-to-live do cache em segundos
         """
         self.tavily_api_key = tavily_api_key
         self.prefer_tavily = prefer_tavily
         self.tavily_client = None
+        self.enable_cache = enable_cache
+        
+        # Inicializa cache de buscas
+        self.search_cache = None
+        if enable_cache and CACHE_AVAILABLE:
+            self.search_cache = TTLCache(maxsize=cache_size, ttl=cache_ttl)
+            logger.info(f"✅ Cache de buscas inicializado: max_size={cache_size}, ttl={cache_ttl}s")
+        elif enable_cache:
+            logger.warning("⚠️ Cache de buscas desabilitado (cachetools não disponível)")
         
         # Inicializa Tavily se API key fornecida
         if tavily_api_key and TAVILY_AVAILABLE:
@@ -72,6 +95,10 @@ class WebSearchPlugin(BasePlugin):
     def is_enabled(self) -> bool:
         """Verifica se pelo menos um serviço está disponível"""
         return DUCKDUCKGO_AVAILABLE or self.tavily_client is not None
+    
+    def requires_network(self) -> bool:
+        """Este plugin requer conexão com internet"""
+        return True
     
     def get_tool_definition(self) -> Dict[str, Any]:
         """
@@ -117,13 +144,19 @@ class WebSearchPlugin(BasePlugin):
         
         return self.search(query, max_results)
     
+    def _get_cache_key(self, query: str, max_results: int) -> str:
+        """Gera chave para cache baseada na query"""
+        normalized_query = " ".join(query.lower().strip().split())
+        key_string = f"{normalized_query}:{max_results}"
+        return hashlib.md5(key_string.encode('utf-8')).hexdigest()
+    
     def search(
         self,
         query: str,
         max_results: int = 5
     ) -> List[Dict[str, str]]:
         """
-        Busca informações na web
+        Busca informações na web (com cache)
         
         Args:
             query: Termo de busca
@@ -136,8 +169,18 @@ class WebSearchPlugin(BasePlugin):
             logger.warning("⚠️ Query de busca vazia")
             return []
         
+        # Verifica cache primeiro
+        if self.search_cache is not None:
+            cache_key = self._get_cache_key(query, max_results)
+            cached_result = self.search_cache.get(cache_key)
+            if cached_result is not None:
+                logger.info(f"✅ Busca do cache: '{query}' ({len(cached_result)} resultados)")
+                return cached_result
+        
         start_time = time.time()
         logger.info(f"🔍 Buscando na web: '{query}'")
+        
+        results = []
         
         # Tenta Tavily primeiro se preferido e disponível
         if self.prefer_tavily and self.tavily_client:
@@ -145,26 +188,32 @@ class WebSearchPlugin(BasePlugin):
             if results:
                 elapsed = (time.time() - start_time) * 1000
                 logger.info(f"✅ Busca Tavily concluída em {elapsed:.0f}ms: {len(results)} resultados")
-                return results
         
-        # Tenta DuckDuckGo
-        if DUCKDUCKGO_AVAILABLE:
+        # Tenta DuckDuckGo se Tavily não retornou resultados
+        if not results and DUCKDUCKGO_AVAILABLE:
             results = self._search_duckduckgo(query, max_results)
             if results:
                 elapsed = (time.time() - start_time) * 1000
                 logger.info(f"✅ Busca DuckDuckGo concluída em {elapsed:.0f}ms: {len(results)} resultados")
-                return results
         
         # Fallback para Tavily se DuckDuckGo falhou
-        if self.tavily_client:
+        if not results and self.tavily_client:
             results = self._search_tavily(query, max_results)
             if results:
                 elapsed = (time.time() - start_time) * 1000
                 logger.info(f"✅ Busca Tavily (fallback) concluída em {elapsed:.0f}ms: {len(results)} resultados")
-                return results
         
-        logger.error(f"❌ Falha em todas as tentativas de busca para: '{query}'")
-        return []
+        if not results:
+            logger.error(f"❌ Falha em todas as tentativas de busca para: '{query}'")
+            return []
+        
+        # Armazena no cache se habilitado
+        if self.search_cache is not None:
+            cache_key = self._get_cache_key(query, max_results)
+            self.search_cache[cache_key] = results
+            logger.debug(f"💾 Resultados armazenados no cache: '{query}'")
+        
+        return results
     
     def _search_duckduckgo(
         self,

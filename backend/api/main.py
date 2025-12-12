@@ -14,7 +14,7 @@ from loguru import logger
 from datetime import datetime
 
 from backend.config import settings
-from backend.api.routes import process, websocket, web_interface, feedback, health, analytics, streaming
+from backend.api.routes import process, websocket, web_interface, feedback, health, analytics, streaming, conversations, location, privacy
 from backend.api.routes.errors import router as errors_router, init_error_services
 from backend.api.middleware.rate_limit import setup_rate_limiting
 from backend.api.startup.services_initializer import initialize_all_services
@@ -57,6 +57,7 @@ wake_word_service = None
 context_manager = None
 cleanup_service = None
 feedback_service = None
+conversation_history_service = None
 
 
 @app.on_event("startup")
@@ -64,6 +65,8 @@ async def startup_event():
     """Inicializa serviços no startup da aplicação"""
     global stt_service, llm_service, tts_service, wake_word_service, context_manager
     global database, memory_service, cleanup_service, feedback_service
+    global conversation_history_service, geocoding_service, privacy_mode_service
+    global privacy_mode_service
     
     logger.info("=" * 60)
     logger.info("Iniciando Jonh Assistant API")
@@ -86,19 +89,25 @@ async def startup_event():
             database,
             embedding_service,
             clustering_service,
-            response_cache
+            response_cache,
+            conversation_history_service,
+            geocoding_service,
+            privacy_mode_service
         ) = await initialize_all_services(base_path)
         
         # Inicializa serviços nas rotas
-        process.init_services(stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, intent_detector, feedback_service, response_cache)
+        process.init_services(stt_service, llm_service, tts_service, context_manager, memory_service, plugin_manager, intent_detector, feedback_service, response_cache, privacy_mode_service)
         process.init_rate_limiter(app_limiter)
-        websocket.init_services(stt_service, llm_service, tts_service, wake_word_service, context_manager, memory_service, plugin_manager, feedback_service)
+        websocket.init_services(stt_service, llm_service, tts_service, wake_word_service, context_manager, memory_service, plugin_manager, feedback_service, privacy_mode_service)
         web_interface.init_services(stt_service, llm_service, tts_service, context_manager, memory_service)
         feedback.init_feedback_service(feedback_service)
-        health.init_health_services(stt_service, llm_service, tts_service, context_manager)
+        health.init_health_services(stt_service, llm_service, tts_service, context_manager, plugin_manager, memory_service, response_cache)
         analytics.init_analytics_services(database, embedding_service)
         init_error_services(database)
-        streaming.init_services(llm_service, context_manager, memory_service, plugin_manager, intent_detector, response_cache)
+        streaming.init_services(llm_service, context_manager, memory_service, plugin_manager, intent_detector, response_cache, privacy_mode_service)
+        conversations.init_services(conversation_history_service, context_manager)
+        location.init_services(context_manager, geocoding_service)
+        privacy.init_privacy_service(privacy_mode_service)
         
         logger.info("Serviços inicializados com sucesso")
         logger.info(f"Servidor rodando em {settings.host}:{settings.port}")
@@ -169,6 +178,9 @@ app.include_router(feedback.router)
 app.include_router(health.router)
 app.include_router(analytics.router)
 app.include_router(streaming.router)
+app.include_router(conversations.router)
+app.include_router(location.router)
+app.include_router(privacy.router)
 app.include_router(errors_router)
 
 

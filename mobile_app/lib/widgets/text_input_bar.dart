@@ -7,7 +7,10 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/responsive.dart';
 import '../utils/error_handler.dart';
+import 'glassmorphic_container.dart';
+import 'metallic_glow_button.dart';
 
 class TextInputBar extends StatefulWidget {
   const TextInputBar({super.key});
@@ -123,32 +126,31 @@ class _TextInputBarState extends State<TextInputBar> {
     final apiService = context.watch<ApiService>();
     final isStreaming = apiService.isStreaming;
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? AppTheme.darkSurface : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+    final horizontalPadding = Responsive.horizontalPadding(context).horizontal;
+    
+    return GlassmorphicContainer(
+      margin: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        0,
+        horizontalPadding,
+        Responsive.spacing(context, small: 12, medium: 16),
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      borderRadius: BorderRadius.circular(24),
+      blur: 10.0,
+      opacity: 0.15,
       child: SafeArea(
         top: false,
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            // TextField expansível estilo WhatsApp
+            // TextField expansível com estilo moderno
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
                   color: isDark
-                      ? AppTheme.darkSurfaceVariant
-                      : const Color(0xFFF0F2F5),
+                      ? AppTheme.darkSurfaceVariant.withOpacity(0.5)
+                      : Colors.white.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(21),
                 ),
                 child: TextField(
@@ -160,7 +162,7 @@ class _TextInputBarState extends State<TextInputBar> {
                   decoration: InputDecoration(
                     hintText: isStreaming
                         ? 'Aguardando resposta...'
-                        : 'Mensagem',
+                        : 'Digite ou fale...',
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
@@ -524,30 +526,25 @@ class _TextInputBarState extends State<TextInputBar> {
         final isRecording = audioService.isRecording;
         final canRecord = audioService.hasPermission;
 
-        return GestureDetector(
-          onTap: _handleVoicePress,
+        return MetallicGlowButton(
+          onTap: canRecord ? _handleVoicePress : null,
           onLongPress: canRecord ? _handleVoicePress : null,
           onLongPressEnd: canRecord && isRecording
-              ? (_) => _handleVoicePress()
+              ? () => _handleVoicePress()
               : null,
-          child: Material(
-            color: isRecording
-                ? AppTheme.recording
-                : canRecord
-                    ? theme.colorScheme.primary
-                    : AppTheme.textTertiary,
-            shape: const CircleBorder(),
-            child: Container(
-              width: 48,
-              height: 48,
-              alignment: Alignment.center,
-              child: Icon(
-                isRecording ? Icons.stop : Icons.mic,
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-          ),
+          icon: isRecording ? Icons.stop : Icons.mic,
+          size: 48,
+          isActive: isRecording,
+          glowColor: isRecording
+              ? AppTheme.recording
+              : canRecord
+                  ? theme.colorScheme.primary
+                  : AppTheme.textTertiary,
+          tooltip: isRecording
+              ? 'Parar gravação'
+              : canRecord
+                  ? 'Gravar áudio'
+                  : 'Permissão de microfone necessária',
         );
       },
     );

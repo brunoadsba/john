@@ -8,6 +8,7 @@ import 'services/wake_word_service.dart';
 import 'services/wake_word_backend_service.dart';
 import 'services/audio_stream_service.dart';
 import 'services/background_wake_word_service.dart';
+import 'services/location_service.dart';
 import 'services/error_monitor.dart';
 import 'services/theme_service.dart';
 import 'theme/app_theme.dart';
@@ -64,6 +65,9 @@ class JonhAssistantApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => WakeWordService()),
         ChangeNotifierProvider(create: (_) => WakeWordBackendService()),
         ChangeNotifierProvider(create: (_) => AudioStreamService()),
+        ProxyProvider<ApiService, LocationService>(
+          update: (_, apiService, __) => LocationService(apiService),
+        ),
       ],
       child: Consumer<ThemeService>(
         builder: (context, themeService, child) {

@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
 import '../theme/app_theme.dart';
+import '../theme/responsive.dart';
 import '../utils/error_handler.dart';
+import 'metallic_glow_button.dart';
 
 /// Botão de gravação de voz
 class VoiceButton extends StatefulWidget {
@@ -13,32 +15,7 @@ class VoiceButton extends StatefulWidget {
   State<VoiceButton> createState() => _VoiceButtonState();
 }
 
-class _VoiceButtonState extends State<VoiceButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat(reverse: true);
-
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
-      CurvedAnimation(
-        parent: _animationController,
-        curve: Curves.easeInOut,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
+class _VoiceButtonState extends State<VoiceButton> {
 
   Future<void> _handlePress() async {
     final audioService = context.read<AudioService>();
@@ -153,50 +130,38 @@ class _VoiceButtonState extends State<VoiceButton>
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = AppTheme.isTablet(screenWidth);
-    final buttonSize = isTablet ? AppTheme.buttonSizeXL : AppTheme.buttonSizeL;
-    final iconSize = isTablet ? AppTheme.iconSizeL : AppTheme.iconSizeL - 8;
+    final buttonSize = Responsive.buttonSize(context);
 
     return Consumer2<AudioService, ApiService>(
       builder: (context, audioService, apiService, _) {
         final isRecording = audioService.isRecording;
         final canRecord = audioService.hasPermission;
 
+        if (!canRecord) {
+          // Fallback para botão desabilitado
+          return Center(
+            child: MetallicGlowButton(
+              onTap: null,
+              icon: Icons.mic_off,
+              size: buttonSize,
+              isActive: false,
+              glowColor: AppTheme.textTertiary,
+              tooltip: 'Permissão de microfone necessária',
+            ),
+          );
+        }
+
         return Center(
-          child: GestureDetector(
+          child: MetallicGlowButton(
             onTap: _handlePress,
             onLongPress: canRecord ? _handlePress : null,
             onLongPressEnd:
-                canRecord && isRecording ? (_) => _handlePress() : null,
-            child: AnimatedBuilder(
-              animation: _scaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: isRecording ? _scaleAnimation.value : 1.0,
-                  child: Container(
-                    width: buttonSize,
-                    height: buttonSize,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isRecording
-                          ? AppTheme.recording
-                          : canRecord
-                              ? AppTheme.primary
-                              : AppTheme.textTertiary,
-                      boxShadow: isRecording
-                          ? AppTheme.recordingShadow
-                          : AppTheme.buttonShadow,
-                    ),
-                    child: Icon(
-                      isRecording ? Icons.stop : Icons.mic,
-                      size: iconSize,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              },
-            ),
+                canRecord && isRecording ? () => _handlePress() : null,
+            icon: isRecording ? Icons.stop : Icons.mic,
+            size: buttonSize,
+            isActive: isRecording,
+            glowColor: isRecording ? AppTheme.recording : AppTheme.primary,
+            tooltip: isRecording ? 'Parar gravação' : 'Gravar áudio',
           ),
         );
       },

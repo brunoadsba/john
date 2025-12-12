@@ -26,47 +26,37 @@ class HomeController {
     // Verifica permissões
     await audioService.checkPermissions();
 
-    // Conecta à API automaticamente
+    // Tenta conectar à API automaticamente (não bloqueia se falhar)
     if (!apiService.isConnected) {
       try {
         await apiService.connect();
       } catch (e) {
-        if (context.mounted) {
-          ErrorHandler.showConnectionError(
-            context,
-            onRetry: () => initialize(context),
-          );
-        }
-        return;
+        // Não bloqueia a inicialização - app funciona offline
+        // Conexão será tentada quando usuário interagir
+        debugPrint('⚠️ Servidor não disponível no momento. App funcionará em modo offline.');
       }
     }
 
-    // Testa conexão
+    // Testa conexão silenciosamente (não mostra erro se falhar)
     try {
       final connected = await apiService.testConnection();
-      if (!connected && context.mounted) {
-        ErrorHandler.showWarning(
-          context,
-          'Servidor não está acessível. Verifique se o backend está rodando.',
-        );
+      if (!connected) {
+        debugPrint('ℹ️ Servidor offline - funcionalidades que requerem servidor estarão indisponíveis.');
       }
     } catch (e) {
-      // Ignora erro de teste
+      // Ignora erro de teste - app continua funcionando
     }
   }
 
-  /// Configura callback para reproduzir áudio recebido
+  /// Configura callback para reproduzir áudio recebido (DESABILITADO - TTS desabilitado)
+  @Deprecated('TTS desabilitado - agente responde apenas via texto')
   void setupAudioCallback(
     BuildContext context,
     Function(bool) onPlayingStateChanged,
   ) {
-    apiService.onAudioReceived = (audioBytes) async {
-      // Validação já está no ApiService, aqui apenas chama callback
-      if (context.mounted) {
-        onPlayingStateChanged(true);
-      }
-      // A reprodução é feita pelo AudioService via callback
-    };
+    // NOTA: Callback de áudio removido - TTS desabilitado
+    // O agente agora responde apenas via texto, não há mais reprodução de áudio
+    // apiService.onAudioReceived não é mais configurado
   }
 
   /// Atualiza e reconecta todos os serviços

@@ -129,7 +129,7 @@ class DeviceCompatibility {
         );
       }
     } else if (report.availableMemoryMB != null && 
-               report.availableMemoryMB! < MIN_MEMORY_MB) {
+               report.availableMemoryMB! < minMemoryMb) {
       if (context.mounted) {
         showDialog(
           context: context,
@@ -138,7 +138,7 @@ class DeviceCompatibility {
             content: Text(
               'O app pode ter performance degradada.\n\n'
               'Memória disponível: ${report.availableMemoryMB!.toStringAsFixed(0)}MB\n'
-              'Recomendado: ${MIN_MEMORY_MB.toStringAsFixed(0)}MB ou mais',
+              'Recomendado: ${minMemoryMb.toStringAsFixed(0)}MB ou mais',
             ),
             actions: [
               TextButton(

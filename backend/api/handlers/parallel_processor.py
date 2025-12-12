@@ -59,7 +59,8 @@ async def process_with_parallel_prep(
     llm_service: Any,
     audio_data: Optional[bytes],
     texto: Optional[str],
-    session_id: Optional[str]
+    session_id: Optional[str],
+    privacy_mode_service: Optional[Any] = None
 ) -> Tuple[str, str, list, str, Optional[List[Dict]], Optional[Any]]:
     """
     Processa entrada (áudio ou texto) com preparação paralela
@@ -102,7 +103,11 @@ async def process_with_parallel_prep(
     
     async def prep_tools():
         from backend.api.handlers.tools_preparer import prepare_tools_for_llm
-        return prepare_tools_for_llm(plugin_manager, web_search_tool, llm_service)
+        # Obtém LLM ativo do privacy_mode_service se disponível
+        active_llm = llm_service
+        if privacy_mode_service:
+            active_llm = privacy_mode_service.get_active_llm_service() or llm_service
+        return prepare_tools_for_llm(plugin_manager, web_search_tool, active_llm, privacy_mode_service)
     
     # Executa preparações em paralelo
     (session_id, contexto, memoria_contexto), (tools, tool_executor) = await asyncio.gather(

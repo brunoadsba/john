@@ -9,7 +9,8 @@ from backend.core.plugin_manager import PluginManager
 
 def prepare_tools_for_websocket(
     plugin_manager: Optional[PluginManager],
-    web_search_tool: Optional[any]
+    web_search_tool: Optional[any],
+    privacy_mode_service: Optional[any] = None
 ) -> Tuple[Optional[List[Dict]], Optional[callable]]:
     """
     Prepara tools e tool executor para uso no WebSocket
@@ -17,6 +18,7 @@ def prepare_tools_for_websocket(
     Args:
         plugin_manager: PluginManager (modo novo)
         web_search_tool: WebSearchTool (modo antigo, compatibilidade)
+        privacy_mode_service: Serviço de modo privacidade (opcional)
         
     Returns:
         Tupla (tools, tool_executor)
@@ -24,9 +26,14 @@ def prepare_tools_for_websocket(
     tools = None
     tool_executor = None
     
+    # Determina modo privacidade
+    privacy_mode = False
+    if privacy_mode_service:
+        privacy_mode = privacy_mode_service.get_privacy_mode()
+    
     if plugin_manager:
-        # Novo modo: usa PluginManager
-        tools = plugin_manager.get_tool_definitions()
+        # Novo modo: usa PluginManager (filtra plugins se em modo privacidade)
+        tools = plugin_manager.get_tool_definitions(privacy_mode=privacy_mode)
         
         def execute_tool(tool_name: str, args: dict) -> str:
             """Executa uma tool via PluginManager e retorna resultado formatado"""

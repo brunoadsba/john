@@ -21,19 +21,20 @@ router = APIRouter(tags=["websocket"])
 context_manager: Optional[ContextManager] = None
 
 
-def init_services(stt, llm, tts, ww, ctx, memory=None, web_search=None, feedback=None):
+def init_services(stt, llm, tts, ww, ctx, memory=None, web_search=None, feedback=None, privacy_svc=None):
     """
     Inicializa os serviços em todos os módulos
     
     Args:
         web_search: PluginManager ou web_search_tool (compatibilidade)
         feedback: Serviço de feedback (opcional)
+        privacy_svc: Serviço de modo privacidade (opcional)
     """
     global context_manager
     context_manager = ctx
     
     # Inicializa handlers
-    init_handlers(stt, llm, tts, ctx, memory, web_search, feedback)
+    init_handlers(stt, llm, tts, ctx, memory, web_search, feedback, privacy_svc)
     init_wake_word_handler(ww)
 
 

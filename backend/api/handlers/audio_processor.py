@@ -15,6 +15,7 @@ from backend.api.handlers.parallel_processor import (
 from backend.api.handlers.llm_processor import process_with_llm
 from backend.api.handlers.feedback_collector import collect_conversation_feedback
 from backend.services.response_sanitizer import get_sanitizer
+from backend.scripts.capture_assistant_responses import capture_response
 
 
 async def process_audio_complete(
@@ -29,7 +30,8 @@ async def process_audio_complete(
     rlhf_service: Optional[Any],
     feedback_service: Optional[Any],
     audio_data: bytes,
-    session_id: Optional[str]
+    session_id: Optional[str],
+    privacy_mode_service: Optional[Any] = None
 ) -> Tuple[Response, str, float]:
     """
     Processa áudio completo: STT -> LLM -> TTS
@@ -64,15 +66,21 @@ async def process_audio_complete(
         llm_service=llm_service,
         audio_data=audio_data,
         texto=None,
-        session_id=session_id
+        session_id=session_id,
+        privacy_mode_service=privacy_mode_service
     )
     
     # 2. LLM - Gera resposta
     logger.info("Etapa 2: Geração de resposta (LLM)")
     
+    # Obtém LLM ativo do privacy_mode_service se disponível
+    active_llm = llm_service
+    if privacy_mode_service:
+        active_llm = privacy_mode_service.get_active_llm_service() or llm_service
+    
     # Processa com LLM usando handler
     resposta_texto, tokens = await process_with_llm(
-        llm_service=llm_service,
+        llm_service=active_llm,
         texto=texto_transcrito,
         contexto=contexto,
         memoria_contexto=memoria_contexto,
@@ -105,9 +113,9 @@ async def process_audio_complete(
     await context_manager.add_message(session_id, "assistant", resposta_texto)
     logger.info(f"Resposta: '{resposta_texto}'")
     
-    # 4. Text-to-Speech
-    logger.info("Etapa 3: Síntese de voz (TTS)")
-    audio_resposta = await tts_service.synthesize(resposta_texto)
+    # NOTA: TTS desabilitado - agente responde apenas via texto
+    # O áudio do usuário ainda é processado (STT), mas a resposta é apenas textual
+    logger.info("ℹ️ TTS desabilitado - resposta apenas em texto")
     
     tempo_total = time.time() - start_time
     
@@ -119,13 +127,39 @@ async def process_audio_complete(
     
     logger.info(
         f"Processamento completo em {tempo_total:.2f}s: "
-        f"STT -> '{texto_transcrito}' -> LLM -> '{resposta_texto}' -> TTS"
+        f"STT -> '{texto_transcrito}' -> LLM -> '{resposta_texto}' (apenas texto)"
     )
     
-    # Retorna áudio com headers informativos
+    # Captura resposta para análise (em background, não bloqueia)
+    try:
+        capture_response(
+            user_input=texto_transcrito,
+            assistant_response=resposta_texto_original,
+            session_id=session_id,
+            tokens=tokens,
+            processing_time=tempo_total,
+            tools_used=None,  # TODO: obter tools usadas
+            sanitized_response=resposta_texto if resposta_texto != resposta_texto_original else None,
+            context_messages=None,  # TODO: obter contexto
+            audio_data=None,  # Sem áudio
+            audio_duration=None  # Sem duração de áudio
+        )
+    except Exception as e:
+        logger.debug(f"Erro ao capturar resposta (não crítico): {e}")
+    
+    # Retorna JSON com texto da resposta
+    import json
+    response_data = {
+        "text": resposta_texto,
+        "transcription": texto_transcrito,
+        "session_id": session_id,
+        "tokens": tokens,
+        "processing_time": tempo_total
+    }
+    
     response = Response(
-        content=audio_resposta,
-        media_type="audio/wav",
+        content=json.dumps(response_data, ensure_ascii=False),
+        media_type="application/json",
         headers={
             "X-Transcription": sanitize_header_value(texto_transcrito),
             "X-Response-Text": sanitize_header_value(resposta_texto),

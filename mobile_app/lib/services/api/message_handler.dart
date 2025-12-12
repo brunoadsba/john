@@ -9,7 +9,8 @@ class MessageHandler {
   final List<Message> _messages = [];
   final PerformanceMetrics metrics = PerformanceMetrics();
 
-  /// Callback para áudio recebido
+  /// Callback para áudio recebido (DESABILITADO - TTS desabilitado)
+  @Deprecated('TTS desabilitado - agente responde apenas via texto')
   Function(Uint8List)? onAudioReceived;
 
   /// ID da mensagem sendo streamada
@@ -20,15 +21,11 @@ class MessageHandler {
   /// Processa mensagem recebida do WebSocket
   void handleMessage(dynamic data) {
     try {
+      // NOTA: Áudio desabilitado - agente responde apenas via texto
+      // Dados binários são ignorados, apenas mensagens JSON são processadas
       if (data is Uint8List || data is List<int>) {
-        // Dados binários (áudio)
-        final audioBytes = data is Uint8List ? data : Uint8List.fromList(data);
-        debugPrint('🔊 Áudio recebido: ${audioBytes.length} bytes');
-        if (onAudioReceived != null) {
-          onAudioReceived!(audioBytes);
-        }
-        metrics.markResponseReceived();
-        metrics.markAudioPlaybackStart();
+        debugPrint('⚠️ Dados binários recebidos mas ignorados (TTS desabilitado): ${data.length} bytes');
+        // Não processa áudio - agente responde apenas via texto
         return;
       }
 
@@ -51,18 +48,32 @@ class MessageHandler {
             final text = json['text'] as String? ?? '';
             final confidence = json['confidence'] as double? ?? 0.0;
             debugPrint('📝 Transcrição: "$text" (confiança: ${confidence.toStringAsFixed(2)})');
-            if (text.isNotEmpty) {
-              // Atualiza mensagem do usuário mais recente com status "sent"
+            
+            // Sempre atualiza status da mensagem, mesmo se transcrição vazia
+            final lastUserMessages = _messages.where((m) => 
+              m.type == MessageType.user && m.status == MessageStatus.sending
+            ).toList();
+            
+            if (lastUserMessages.isNotEmpty) {
+              // Atualiza a mensagem mais recente com status "sent"
+              final lastUserMessage = lastUserMessages.last;
+              updateMessageStatus(lastUserMessage.id, MessageStatus.sent);
+            }
+            
+            // Se o texto da transcrição for diferente e não for placeholder, atualiza ou cria mensagem
+            if (text.isNotEmpty && !text.startsWith('[') && !text.endsWith(']')) {
               final lastUserMessage = _messages.lastWhere(
-                (m) => m.type == MessageType.user && m.status == MessageStatus.sending,
-                orElse: () => _messages.last,
+                (m) => m.type == MessageType.user,
+                orElse: () => Message(
+                  id: '',
+                  type: MessageType.user,
+                  content: '',
+                  timestamp: DateTime.now(),
+                ),
               );
-              if (lastUserMessage.status == MessageStatus.sending) {
-                updateMessageStatus(lastUserMessage.id, MessageStatus.sent);
-              }
               
               // Se o texto da transcrição for diferente, cria nova mensagem
-              if (lastUserMessage.content != text) {
+              if (lastUserMessage.id.isEmpty || lastUserMessage.content != text) {
                 _addMessage(Message(
                   id: 'transcription_${DateTime.now().millisecondsSinceEpoch}',
                   type: MessageType.user,
